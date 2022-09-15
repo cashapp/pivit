@@ -1,0 +1,39 @@
+on:
+  push:
+    tags:
+      - 'v*'
+name: "Release Deployable"
+jobs:
+  release-squbi:
+    name: "Release Pivit"
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        go-version: [1.17.x]
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - name: "Install golang"
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ matrix.go-version }}
+      - if: ${{ matrix.os == 'ubuntu-latest' }}
+        name: "Install dependencies"
+        run: |
+          sudo apt update
+          sudo apt install -y libpcsclite-dev
+      - name: "Checkout code"
+        uses: actions/checkout@v2
+      - name: "Build"
+        run: |
+          set -euxo pipefail
+          cd ${{ github.workspace }}
+          make build
+          if ${{ matrix.os == 'macos-latest' }}; then
+            make build GOARCH=arm64
+          fi
+      - name: "Release versioned"
+        uses: ncipollo/release-action@v1
+        with:
+          allowUpdates: true
+          artifacts: "build/*"
+          token: ${{ secrets.GITHUB_TOKEN }}
