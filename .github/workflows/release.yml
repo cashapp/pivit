@@ -4,7 +4,7 @@ on:
       - 'v*'
 name: "Release Deployable"
 jobs:
-  release-squbi:
+  release-pivit:
     name: "Release Pivit"
     runs-on: ${{ matrix.os }}
     strategy:
@@ -23,6 +23,12 @@ jobs:
           sudo apt install -y libpcsclite-dev
       - name: "Checkout code"
         uses: actions/checkout@v2
+      - name: "Verify release tag"
+        run: |
+          set -euxo pipefail
+          cd ${{ github.workspace }}
+          git config gpg.ssh.allowedSignersFile ./config/allowed_release_signers
+          git tag -v ${{ github.ref_name }}
       - name: "Build"
         run: |
           set -euxo pipefail
