@@ -21,6 +21,10 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -y libpcsclite-dev
+      - if: ${{ matrix.os == 'macos-latest' }}
+        name: "Install dependencies (MacOS)"
+        run: |
+          brew install openssh
       - name: "Checkout code"
         uses: actions/checkout@v2
       - name: "Verify release tag"
@@ -28,6 +32,7 @@ jobs:
           set -euxo pipefail
           cd ${{ github.workspace }}
           git config gpg.ssh.allowedSignersFile ./config/allowed_release_signers
+          git fetch --tags
           git tag -v ${{ github.ref_name }}
       - name: "Build"
         run: |
