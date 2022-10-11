@@ -32,7 +32,7 @@ jobs:
           set -euxo pipefail
           cd ${{ github.workspace }}
           git config gpg.ssh.allowedSignersFile ./config/allowed_release_signers
-          git fetch --tags
+          git fetch --tags -f
           git tag -v ${{ github.ref_name }}
       - name: "Build"
         run: |
