@@ -26,18 +26,13 @@ jobs:
           sudo apt install -y libpcsclite-dev
       - name: "Checkout code"
         uses: actions/checkout@v2
-      - name: "Build and run"
+      - name: "Build and test"
         run: |
           set -euxo pipefail
           cd ${{ github.workspace }}
-          make build
-          # Run simple test
-          gunzip -c build/pivit-*.gz > build/pivit
-          chmod +x build/pivit
-          ./build/pivit --help
+          make test
+
           if ${{ matrix.os == 'macos-latest' }}; then
             # Cross compile for darwin-arm64 and run simple test
-            make build GOARCH=arm64
-            gunzip -c build/pivit-darwin-arm64.gz > build/pivit
-            file build/pivit
+            make test GOARCH=arm64
           fi

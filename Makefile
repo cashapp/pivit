@@ -1,18 +1,41 @@
-MAKEFILE_ROOT = $(shell dirname $(realpath $(word $(words $(MAKEFILE_LIST)),$(MAKEFILE_LIST))))
-BUILD_DIR = $(MAKEFILE_ROOT)/build
-GOOS ?= $(shell go version | awk '{print $$NF}' | cut -d/ -f1)
-GOARCH ?= $(shell go version | awk '{print $$NF}' | cut -d/ -f2)
-EXE = $(BUILD_DIR)/pivit-$(GOOS)-$(GOARCH)
+.PHONY: all
+all: pivit
 
-.PHONY: all build
+#
+# pivit: build pivit binary locally for development 
+#
+pivit:
+	CGO_ENABLED=1 go build ./cmd/pivit
 
-all: build
+#
+# install: install pivit to $GOPATH/bin
+#
+.PHONY: install
+install:
+	go install ./cmd/pivit
 
-build: # Builds executable and gzips it
-	mkdir -p $(BUILD_DIR)
-	# Cross-compile would be hard ¯\_(ツ)_/¯
-	CGO_ENABLED=1 go build -o $(EXE) ./cmd/pivit
+#
+# release: build a possibly cross-compiled and compressed release binary
+#
+.PHONY: release
+GOOS ?= $(shell go env GOOS)
+GOARCH ?= $(shell go env GOARCH)
+EXE = pivit-$(GOOS)-$(GOARCH)
+release: pivit
+	cp pivit $(EXE)
 	gzip -9 $(EXE)
 
+#
+# test: run tests
+#
+.PHONY: test
+test: pivit
+	file pivit
+	./pivit --help
+
+#
+# clean: remove locally built artifacts
+#
+.PHONY: clean
 clean:
-	rm -rf $(BUILD_DIR)
+	rm -rf ./pivit*
