@@ -21,6 +21,7 @@ func runCommand() error {
 	verifyFlag := getopt.BoolLong("verify", 0, "verify a signature")
 	resetFlag := getopt.BoolLong("reset", 'r', "resets the smart card PIV applet and sets new PIN, random PUK, and PIN derived management key")
 	generateFlag := getopt.BoolLong("generate", 'g', "generates a new key pair and a certificate signing request")
+	attestCodeSign := getopt.BoolLong("codesign", 'c', "generates a new key pair and a certificate signing request for a code signing certificate")
 	importFlag := getopt.BoolLong("import", 'i', "imports a certificate to the PIV applet")
 	printFlag := getopt.BoolLong("print", 'p', "prints the certificate and its fingerprint")
 
@@ -76,6 +77,13 @@ func runCommand() error {
 			return errors.New("specify --help, --sign, --verify, --import, --generate, --reset or --print")
 		}
 		return commandGenerate()
+	}
+
+	if *attestCodeSign {
+		if *signFlag || *verifyFlag || *resetFlag || *importFlag || *printFlag {
+			return errors.New("specify --help, --sign, --verify, --import, --generate, --reset or --print")
+		}
+		return commandGenerate("codesign")
 	}
 
 	if *importFlag {

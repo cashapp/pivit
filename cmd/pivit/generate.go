@@ -19,7 +19,7 @@ import (
 )
 
 // commandGenerate generates a new keypair and certificate signing request
-func commandGenerate() error {
+func commandGenerate(slot string) error {
 	cards, err := piv.Cards()
 	if err != nil {
 		return errors.Wrap(err, "enumerate smart cards")
@@ -41,13 +41,19 @@ func commandGenerate() error {
 		return errors.Wrap(err, "get pin")
 	}
 
+	if slot == "codesign" {
+		slot := piv.SlotAuthentication
+	} else {
+		slot := piv.SlotCardAuthentication
+	}
+
 	managementKey := deriveManagementKey(pin)
 	key := piv.Key{
 		Algorithm:   piv.AlgorithmEC384,
 		PINPolicy:   piv.PINPolicyNever,
 		TouchPolicy: piv.TouchPolicyAlways,
 	}
-	publicKey, err := yk.GenerateKey(*managementKey, piv.SlotAuthentication, key)
+	publicKey, err := yk.GenerateKey(*managementKey, slot, key)
 	if err != nil {
 		return errors.Wrap(err, "generate new key")
 	}
@@ -59,13 +65,13 @@ func commandGenerate() error {
 	fmt.Println("Printing Yubikey device attestation certificate:")
 	printCertificate(deviceCert)
 
-	keyCert, err := yk.Attest(piv.SlotAuthentication)
+	keyCert, err := yk.Attest(slot)
 	if err != nil {
 		return errors.Wrap(err, "attest key")
 	}
 	fmt.Println("Printing generated key certificate:")
 	printCertificate(keyCert)
-	err = yk.SetCertificate(*managementKey, piv.SlotAuthentication, keyCert)
+	err = yk.SetCertificate(*managementKey, slot, keyCert)
 	if err != nil {
 		return errors.Wrap(err, "set yubikey certificate")
 	}
@@ -77,7 +83,7 @@ func commandGenerate() error {
 			return pin, nil
 		},
 	}
-	privateKey, err := yk.PrivateKey(piv.SlotAuthentication, publicKey, auth)
+	privateKey, err := yk.PrivateKey(slot, publicKey, auth)
 	if err != nil {
 		return errors.Wrap(err, "access private key")
 	}
