@@ -47,7 +47,7 @@ func commandGenerate() error {
 		PINPolicy:   piv.PINPolicyNever,
 		TouchPolicy: piv.TouchPolicyAlways,
 	}
-	publicKey, err := yk.GenerateKey(*managementKey, piv.SlotCardAuthentication, key)
+	publicKey, err := yk.GenerateKey(*managementKey, piv.SlotAuthentication, key)
 	if err != nil {
 		return errors.Wrap(err, "generate new key")
 	}
@@ -59,13 +59,13 @@ func commandGenerate() error {
 	fmt.Println("Printing Yubikey device attestation certificate:")
 	printCertificate(deviceCert)
 
-	keyCert, err := yk.Attest(piv.SlotCardAuthentication)
+	keyCert, err := yk.Attest(piv.SlotAuthentication)
 	if err != nil {
 		return errors.Wrap(err, "attest key")
 	}
 	fmt.Println("Printing generated key certificate:")
 	printCertificate(keyCert)
-	err = yk.SetCertificate(*managementKey, piv.SlotCardAuthentication, keyCert)
+	err = yk.SetCertificate(*managementKey, piv.SlotAuthentication, keyCert)
 	if err != nil {
 		return errors.Wrap(err, "set yubikey certificate")
 	}
@@ -77,7 +77,7 @@ func commandGenerate() error {
 			return pin, nil
 		},
 	}
-	privateKey, err := yk.PrivateKey(piv.SlotCardAuthentication, publicKey, auth)
+	privateKey, err := yk.PrivateKey(piv.SlotAuthentication, publicKey, auth)
 	if err != nil {
 		return errors.Wrap(err, "access private key")
 	}
