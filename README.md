@@ -60,7 +60,7 @@ by setting the `PIVIT_ORG`, `PIVIT_ORG_UNIT`, and `PIVIT_EMAIL` environment vari
 
 ## Import certificate to Yubikey
 ```
-pivit --import [file]
+pivit --import --cert-file [file]
 ```
 
 Imports a certificate from `file`.  
