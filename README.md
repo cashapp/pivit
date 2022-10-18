@@ -26,7 +26,7 @@ Reset the Yubikey's PIV applet and create a new PIN to access it.
 
 ## Generate a certificate
 ```
-pivit --generate || pivit --codesign (uses slot 9a)
+pivit --generate
 ```
 Generate a new key pair in the Yubikey's card authentication slot.  
 This command will also generate and store a x509 certificate for the generated key that's signed by Yubico.
@@ -57,6 +57,13 @@ If you choose to issue and use your own certificate, it's important to also veri
 
 You can set the organization name, organization unit, and email address in the certificate request's subject
 by setting the `PIVIT_ORG`, `PIVIT_ORG_UNIT`, and `PIVIT_EMAIL` environment variables before executing this command.
+
+### To Use A Different Slot to Generate a Certificate
+```
+pivit --generate -w [slot]
+```
+
+Available slots - 9a, 9c, 9d. Defaults to 9e
 
 ## Import certificate to Yubikey
 ```
