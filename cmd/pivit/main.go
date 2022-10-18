@@ -76,7 +76,7 @@ func runCommand() error {
 		if *signFlag || *verifyFlag || *resetFlag || *importFlag || *printFlag {
 			return errors.New("specify --help, --sign, --verify, --import, --generate, --reset or --print")
 		}
-		return commandGenerate()
+		return commandGenerate("")
 	}
 
 	if *attestCodeSign {

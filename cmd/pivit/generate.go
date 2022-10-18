@@ -19,7 +19,7 @@ import (
 )
 
 // commandGenerate generates a new keypair and certificate signing request
-func commandGenerate(slot string) error {
+func commandGenerate(action string) error {
 	cards, err := piv.Cards()
 	if err != nil {
 		return errors.Wrap(err, "enumerate smart cards")
@@ -41,10 +41,9 @@ func commandGenerate(slot string) error {
 		return errors.Wrap(err, "get pin")
 	}
 
-	if slot == "codesign" {
-		slot := piv.SlotAuthentication
-	} else {
-		slot := piv.SlotCardAuthentication
+	slot := piv.SlotCardAuthentication
+	if action == "codesign" {
+		slot = piv.SlotAuthentication
 	}
 
 	managementKey := deriveManagementKey(pin)
