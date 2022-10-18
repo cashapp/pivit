@@ -42,8 +42,10 @@ func commandGenerate(action string) error {
 	}
 
 	slot := piv.SlotCardAuthentication
-	if action == "codesign" {
-		slot = piv.SlotAuthentication
+	switch action {
+		case "9a": slot = piv.SlotAuthentication
+		case "9c": slot = piv.SlotSignature
+		case "9d": slot = piv.SlotKeyManagement
 	}
 
 	managementKey := deriveManagementKey(pin)

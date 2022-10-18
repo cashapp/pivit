@@ -21,7 +21,7 @@ func runCommand() error {
 	verifyFlag := getopt.BoolLong("verify", 0, "verify a signature")
 	resetFlag := getopt.BoolLong("reset", 'r', "resets the smart card PIV applet and sets new PIN, random PUK, and PIN derived management key")
 	generateFlag := getopt.BoolLong("generate", 'g', "generates a new key pair and a certificate signing request")
-	attestCodeSign := getopt.BoolLong("codesign", 'c', "generates a new key pair and a certificate signing request for a code signing certificate")
+	slotSwapGenerate := getopt.StringLong("slot-swap", 'w', "", "choose 4 available PIV slots, defaults to PIV slot 9e", "slot")
 	importFlag := getopt.BoolLong("import", 'i', "imports a certificate to the PIV applet")
 	printFlag := getopt.BoolLong("print", 'p', "prints the certificate and its fingerprint")
 
@@ -76,14 +76,7 @@ func runCommand() error {
 		if *signFlag || *verifyFlag || *resetFlag || *importFlag || *printFlag {
 			return errors.New("specify --help, --sign, --verify, --import, --generate, --reset or --print")
 		}
-		return commandGenerate("")
-	}
-
-	if *attestCodeSign {
-		if *signFlag || *verifyFlag || *resetFlag || *importFlag || *printFlag {
-			return errors.New("specify --help, --sign, --verify, --import, --generate, --reset or --print")
-		}
-		return commandGenerate("codesign")
+		return commandGenerate(*slotSwapGenerate)
 	}
 
 	if *importFlag {
