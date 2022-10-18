@@ -19,7 +19,7 @@ import (
 )
 
 // commandGenerate generates a new keypair and certificate signing request
-func commandGenerate(action string) error {
+func commandGenerate(swap string) error {
 	cards, err := piv.Cards()
 	if err != nil {
 		return errors.Wrap(err, "enumerate smart cards")
@@ -42,7 +42,7 @@ func commandGenerate(action string) error {
 	}
 
 	slot := piv.SlotCardAuthentication
-	switch action {
+	switch swap {
 		case "9a": slot = piv.SlotAuthentication
 		case "9c": slot = piv.SlotSignature
 		case "9d": slot = piv.SlotKeyManagement
