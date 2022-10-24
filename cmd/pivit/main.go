@@ -83,6 +83,9 @@ func runCommand() error {
 		if *signFlag || *verifyFlag || *generateFlag || *resetFlag || *printFlag {
 			return errors.New("specify --help, --sign, --verify, --import, --generate, --reset or --print")
 		}
+		if *certFileOpt == "" {
+			return errors.New("specify --cert-file [file] for certificate import")
+		}
 		return commandImport(*certFileOpt, *slot)
 	}
 

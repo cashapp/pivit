@@ -34,17 +34,17 @@ jobs:
           git config gpg.ssh.allowedSignersFile ./config/allowed_release_signers
           git fetch --tags -f
           git tag -v ${{ github.ref_name }}
-      - name: "Build"
+      - name: "Build release"
         run: |
           set -euxo pipefail
           cd ${{ github.workspace }}
-          make build
+          make release
           if ${{ matrix.os == 'macos-latest' }}; then
-            make build GOARCH=arm64
+            make release GOARCH=arm64
           fi
       - name: "Release versioned"
         uses: ncipollo/release-action@v1
         with:
           allowUpdates: true
-          artifacts: "build/*"
+          artifacts: "pivit-*"
           token: ${{ secrets.GITHUB_TOKEN }}
