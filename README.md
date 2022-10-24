@@ -63,7 +63,17 @@ by setting the `PIVIT_ORG`, `PIVIT_ORG_UNIT`, and `PIVIT_EMAIL` environment vari
 pivit --generate -w [slot]
 ```
 
-Available slots - 9a, 9c, 9d. Defaults to 9e
+Available slots - 9a, 9c, 9d. Defaults to slot 9e.
+
+ 9e is the "Card Authentication" slot. This is the only slot that doesn't require a PIN to access the private key when signing with it. Resulting in less friction in usage.
+
+ 9a is the "Authentication" slot. This slot is used for actions like system login.
+
+ 9c is the "Digital Signature" slot. This slot is used for document signing, or signing files and executables
+
+ 9d is the "Key Management" slot. This slot is used for things like encrypting e-mails or files for the purpose of confidentially.
+
+ For more information: https://developers.yubico.com/PIV/Introduction/Certificate_slots.html
 
 ## Import certificate to Yubikey
 ```
