@@ -47,6 +47,7 @@ func commandGenerate(slot string) error {
 		PINPolicy:   piv.PINPolicyNever,
 		TouchPolicy: piv.TouchPolicyAlways,
 	}
+
 	publicKey, err := yk.GenerateKey(*managementKey, utils.GetSlot(slot), key)
 	if err != nil {
 		return errors.Wrap(err, "generate new key")

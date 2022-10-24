@@ -44,16 +44,16 @@ func GetPin() (string, error) {
 	return newPin, nil
 }
 
-// Returns PIV slot. Slot 9e by default
+// Returns PIV slot. Slot 9e is used by default
 func GetSlot(slot string) piv.Slot {
-	var slotMap = map[string]piv.Slot{
+	slotMap := map[string]piv.Slot{
 		piv.SlotCardAuthentication.String(): piv.SlotCardAuthentication,
 		piv.SlotAuthentication.String():	 piv.SlotAuthentication,
 		piv.SlotSignature.String():			 piv.SlotSignature,
 		piv.SlotKeyManagement.String():		 piv.SlotKeyManagement,
 	}
 
-	pivSlot := slotMap[slot]
+	slotPosition := slotMap[slot]
 
-	return pivSlot
+	return slotPosition
 }

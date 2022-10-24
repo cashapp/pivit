@@ -188,8 +188,18 @@ func verifyOpts(slot string) x509.VerifyOptions {
 	}
 
 	yk, err := yubikey.Yubikey()
+
+	var slotID = map[string]piv.Slot{
+		piv.SlotCardAuthentication.String(): piv.SlotCardAuthentication,
+		piv.SlotAuthentication.String():	 piv.SlotAuthentication,
+		piv.SlotSignature.String():			 piv.SlotSignature,
+		piv.SlotKeyManagement.String():		 piv.SlotKeyManagement,
+	}
+
+	pivSlot := slotID[slot]
+
 	if err == nil {
-		cert, err := yk.Certificate(utils.GetSlot(slot))
+		cert, err := yk.Certificate(pivSlot)
 		if err == nil {
 			roots.AddCert(cert)
 		}

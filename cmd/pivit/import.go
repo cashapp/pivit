@@ -43,7 +43,16 @@ func commandImport(file string, slot string) error {
 
 	managementKey := deriveManagementKey(pin)
 
-	err = yk.SetCertificate(*managementKey, utils.GetSlot(slot), cert)
+	slotMap := map[string]piv.Slot{
+		piv.SlotCardAuthentication.String(): piv.SlotCardAuthentication,
+		piv.SlotAuthentication.String():	 piv.SlotAuthentication,
+		piv.SlotSignature.String():			 piv.SlotSignature,
+		piv.SlotKeyManagement.String():		 piv.SlotKeyManagement,
+	}
+
+	slotKey := slotMap[slot]
+
+	err = yk.SetCertificate(*managementKey, slotKey, cert)
 	if err != nil {
 		return errors.Wrap(err, "set certificate")
 	}

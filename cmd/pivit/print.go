@@ -21,7 +21,16 @@ func commandPrint(slot string) error {
 		_ = yk.Close()
 	}()
 
-	cert, err := yk.Certificate(utils.GetSlot(slot))
+	slotMap := map[string]piv.Slot{
+		piv.SlotCardAuthentication.String(): piv.SlotCardAuthentication,
+		piv.SlotAuthentication.String():	 piv.SlotAuthentication,
+		piv.SlotSignature.String():			 piv.SlotSignature,
+		piv.SlotKeyManagement.String():		 piv.SlotKeyManagement,
+	}
+
+	slotKey := slotMap[slot]
+
+	cert, err := yk.Certificate(slotKey)
 	if err != nil {
 		return errors.Wrap(err, "get PIV certificate")
 	}
