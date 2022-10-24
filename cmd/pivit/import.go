@@ -12,7 +12,7 @@ import (
 )
 
 // commandImport stores a certificate file in a yubikey PIV slot
-func commandImport(file string) error {
+func commandImport(file string, slot string) error {
 	certBytes, err := os.ReadFile(file)
 	if err != nil {
 		return errors.Wrap(err, "read certificate file")
@@ -42,7 +42,8 @@ func commandImport(file string) error {
 	}
 
 	managementKey := deriveManagementKey(pin)
-	err = yk.SetCertificate(*managementKey, piv.SlotCardAuthentication, cert)
+
+	err = yk.SetCertificate(*managementKey, utils.GetSlot(slot), cert)
 	if err != nil {
 		return errors.Wrap(err, "set certificate")
 	}

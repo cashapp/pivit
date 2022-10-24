@@ -17,13 +17,13 @@ import (
 )
 
 // commandSign signs the filename given in fileArgs or the content from stdin if no filename was supplied
-func commandSign(statusFd int, detach, armor bool, userId, timestampAuthority string, fileArgs []string) error {
+func commandSign(statusFd int, detach, armor bool, userId, timestampAuthority string, slot string, fileArgs []string) error {
 	yk, err := yubikey.Yubikey()
 	if err != nil {
 		return errors.Wrap(err, "open PIV for signing")
 	}
 
-	cert, err := yk.Certificate(piv.SlotCardAuthentication)
+	cert, err := yk.Certificate(utils.GetSlot(slot))
 	if err != nil {
 		return errors.Wrap(err, "get identity certificate")
 	}

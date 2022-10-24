@@ -21,7 +21,7 @@ func runCommand() error {
 	verifyFlag := getopt.BoolLong("verify", 0, "verify a signature")
 	resetFlag := getopt.BoolLong("reset", 'r', "resets the smart card PIV applet and sets new PIN, random PUK, and PIN derived management key")
 	generateFlag := getopt.BoolLong("generate", 'g', "generates a new key pair and a certificate signing request")
-	slotSwapGenerate := getopt.StringLong("slot-swap", 'w', "", "choose 4 available PIV slots, defaults to PIV slot 9e", "slot")
+	slot := getopt.StringLong("slot", 'w', "9e", "choose 4 available PIV slots, defaults to PIV slot 9e", "slot")
 	importFlag := getopt.BoolLong("import", 'i', "imports a certificate to the PIV applet")
 	printFlag := getopt.BoolLong("print", 'p', "prints the certificate and its fingerprint")
 
@@ -49,7 +49,7 @@ func runCommand() error {
 		} else if len(*localUserOpt) == 0 {
 			return errors.New("specify a USER-ID to sign with")
 		}
-		return commandSign(*statusFdOpt, *detachSignFlag, *armorFlag, *localUserOpt, *tsaOpt, fileArgs)
+		return commandSign(*statusFdOpt, *detachSignFlag, *armorFlag, *localUserOpt, *tsaOpt, *slot, fileArgs)
 	}
 
 	if *verifyFlag {
@@ -62,7 +62,7 @@ func runCommand() error {
 		} else if *armorFlag {
 			return errors.New("armor cannot be specified for verification")
 		}
-		return commandVerify(fileArgs)
+		return commandVerify(fileArgs, *slot)
 	}
 
 	if *resetFlag {
@@ -76,21 +76,21 @@ func runCommand() error {
 		if *signFlag || *verifyFlag || *resetFlag || *importFlag || *printFlag {
 			return errors.New("specify --help, --sign, --verify, --import, --generate, --reset or --print")
 		}
-		return commandGenerate(*slotSwapGenerate)
+		return commandGenerate(*slot)
 	}
 
 	if *importFlag {
 		if *signFlag || *verifyFlag || *generateFlag || *resetFlag || *printFlag {
 			return errors.New("specify --help, --sign, --verify, --import, --generate, --reset or --print")
 		}
-		return commandImport(*certFileOpt)
+		return commandImport(*certFileOpt, *slot)
 	}
 
 	if *printFlag {
 		if *signFlag || *verifyFlag || *generateFlag || *resetFlag || *importFlag {
 			return errors.New("specify --help, --sign, --verify, --import, --generate, --reset or --print")
 		}
-		return commandPrint()
+		return commandPrint(*slot)
 	}
 
 	return errors.New("specify --help, --sign, --verify, --import, --generate, --reset or --print")
