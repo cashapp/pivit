@@ -13,7 +13,6 @@ import (
 	"github.com/cashapp/pivit/cmd/pivit/yubikey"
 	"github.com/certifi/gocertifi"
 	cms "github.com/github/ietf-cms"
-	"github.com/go-piv/piv-go/piv"
 	"github.com/pkg/errors"
 )
 
@@ -189,17 +188,8 @@ func verifyOpts(slot string) x509.VerifyOptions {
 
 	yk, err := yubikey.Yubikey()
 
-	var slotID = map[string]piv.Slot{
-		piv.SlotCardAuthentication.String(): piv.SlotCardAuthentication,
-		piv.SlotAuthentication.String():	 piv.SlotAuthentication,
-		piv.SlotSignature.String():			 piv.SlotSignature,
-		piv.SlotKeyManagement.String():		 piv.SlotKeyManagement,
-	}
-
-	pivSlot := slotID[slot]
-
 	if err == nil {
-		cert, err := yk.Certificate(pivSlot)
+		cert, err := yk.Certificate(utils.GetSlot(slot))
 		if err == nil {
 			roots.AddCert(cert)
 		}

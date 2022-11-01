@@ -7,7 +7,6 @@ import (
 
 	"github.com/cashapp/pivit/cmd/pivit/utils"
 	"github.com/cashapp/pivit/cmd/pivit/yubikey"
-	"github.com/go-piv/piv-go/piv"
 	"github.com/pkg/errors"
 )
 
@@ -43,16 +42,7 @@ func commandImport(file string, slot string) error {
 
 	managementKey := deriveManagementKey(pin)
 
-	slotMap := map[string]piv.Slot{
-		piv.SlotCardAuthentication.String(): piv.SlotCardAuthentication,
-		piv.SlotAuthentication.String():	 piv.SlotAuthentication,
-		piv.SlotSignature.String():			 piv.SlotSignature,
-		piv.SlotKeyManagement.String():		 piv.SlotKeyManagement,
-	}
-
-	slotKey := slotMap[slot]
-
-	err = yk.SetCertificate(*managementKey, slotKey, cert)
+	err = yk.SetCertificate(*managementKey, utils.GetSlot(slot), cert)
 	if err != nil {
 		return errors.Wrap(err, "set certificate")
 	}

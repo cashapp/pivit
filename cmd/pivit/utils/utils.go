@@ -48,9 +48,9 @@ func GetPin() (string, error) {
 func GetSlot(slot string) piv.Slot {
 	slotMap := map[string]piv.Slot{
 		piv.SlotCardAuthentication.String(): piv.SlotCardAuthentication,
-		piv.SlotAuthentication.String():	 piv.SlotAuthentication,
-		piv.SlotSignature.String():			 piv.SlotSignature,
-		piv.SlotKeyManagement.String():		 piv.SlotKeyManagement,
+		piv.SlotAuthentication.String(): piv.SlotAuthentication,
+		piv.SlotSignature.String(): piv.SlotSignature,
+		piv.SlotKeyManagement.String(): piv.SlotKeyManagement,
 	}
 
 	slotPosition := slotMap[slot]
