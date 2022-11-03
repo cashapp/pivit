@@ -68,6 +68,6 @@ COPY . "/build/${PROJECT_NAME}"
 RUN cd "/build/${PROJECT_NAME}" && \
   nix-shell -p glibc.static go_1_19 pcsclite pkg-config \
   --run "go version && \
-  GO_ENABLED=1 go build -trimpath --ldflags '-linkmode external -extldflags \"-static -L/build/PCSC/src/.libs\"' ./cmd/pivit && \
+  CGO_ENABLED=1 go build -trimpath --ldflags '-linkmode external -extldflags \"-static -L/build/PCSC/src/.libs\"' ./cmd/pivit && \
   file /build/${PROJECT_NAME}/pivit && \
   sha256sum /build/${PROJECT_NAME}/pivit"
