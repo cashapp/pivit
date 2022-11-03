@@ -21,7 +21,7 @@ func runCommand() error {
 	verifyFlag := getopt.BoolLong("verify", 0, "verify a signature")
 	resetFlag := getopt.BoolLong("reset", 'r', "resets the smart card PIV applet and sets new PIN, random PUK, and PIN derived management key")
 	generateFlag := getopt.BoolLong("generate", 'g', "generates a new key pair and a certificate signing request")
-	importFlag := getopt.BoolLong("import", 'i', "imports a certificate to the PIV applet")
+	importOpt := getopt.StringLong("import", 'i', "", "imports a certificate to the PIV applet", "file")
 	printFlag := getopt.BoolLong("print", 'p', "prints the certificate and its fingerprint")
 
 	localUserOpt := getopt.StringLong("local-user", 'u', "", "use USER-ID to sign", "USER-ID")
@@ -30,12 +30,17 @@ func runCommand() error {
 	statusFdOpt := getopt.IntLong("status-fd", 0, -1, "write special status strings to the file descriptor n.", "n")
 	tsaOpt := getopt.StringLong("timestamp-authority", 't', "", "URL of RFC3161 timestamp authority to use for timestamping", "url")
 
-	certFileOpt := getopt.StringLong("cert-file", 0, "", "certificate file")
-
 	getopt.HelpColumn = 40
 	getopt.SetParameters("[files]")
 	getopt.Parse()
 	fileArgs := getopt.Args()
+
+	var importFlag bool
+	if len(*importOpt) > 0 {
+		importFlag = true
+	} else {
+		importFlag = false
+	}
 
 	if *helpFlag {
 		getopt.Usage()
@@ -43,7 +48,7 @@ func runCommand() error {
 	}
 
 	if *signFlag {
-		if *verifyFlag || *generateFlag || *resetFlag || *importFlag || *printFlag {
+		if *verifyFlag || *generateFlag || *resetFlag || importFlag || *printFlag {
 			return errors.New("specify --help, --sign, --verify, --import, --generate, --reset or --print")
 		} else if len(*localUserOpt) == 0 {
 			return errors.New("specify a USER-ID to sign with")
@@ -52,7 +57,7 @@ func runCommand() error {
 	}
 
 	if *verifyFlag {
-		if *signFlag || *generateFlag || *resetFlag || *importFlag || *printFlag {
+		if *signFlag || *generateFlag || *resetFlag || importFlag || *printFlag {
 			return errors.New("specify --help, --sign, --verify, --import, --generate, --reset or --print")
 		} else if len(*localUserOpt) > 0 {
 			return errors.New("local-user cannot be specified for verification")
@@ -65,31 +70,28 @@ func runCommand() error {
 	}
 
 	if *resetFlag {
-		if *signFlag || *verifyFlag || *generateFlag || *importFlag || *printFlag {
+		if *signFlag || *verifyFlag || *generateFlag || importFlag || *printFlag {
 			return errors.New("specify --help, --sign, --verify, --import, --generate, --reset or --print")
 		}
 		return commandReset()
 	}
 
 	if *generateFlag {
-		if *signFlag || *verifyFlag || *resetFlag || *importFlag || *printFlag {
+		if *signFlag || *verifyFlag || *resetFlag || importFlag || *printFlag {
 			return errors.New("specify --help, --sign, --verify, --import, --generate, --reset or --print")
 		}
 		return commandGenerate()
 	}
 
-	if *importFlag {
+	if importFlag {
 		if *signFlag || *verifyFlag || *generateFlag || *resetFlag || *printFlag {
 			return errors.New("specify --help, --sign, --verify, --import, --generate, --reset or --print")
 		}
-		if *certFileOpt == "" {
-			return errors.New("specify --cert-file [file] for certificate import")
-		}
-		return commandImport(*certFileOpt)
+		return commandImport(*importOpt)
 	}
 
 	if *printFlag {
-		if *signFlag || *verifyFlag || *generateFlag || *resetFlag || *importFlag {
+		if *signFlag || *verifyFlag || *generateFlag || *resetFlag || importFlag {
 			return errors.New("specify --help, --sign, --verify, --import, --generate, --reset or --print")
 		}
 		return commandPrint()
