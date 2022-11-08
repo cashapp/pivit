@@ -77,7 +77,7 @@ Available slots - 9a, 9c, 9d. Defaults to slot 9e.
 
 ## Import certificate to Yubikey
 ```
-pivit --import --cert-file [file]
+pivit --import [file]
 ```
 
 Imports a certificate from `file`.  
