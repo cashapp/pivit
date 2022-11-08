@@ -20,7 +20,7 @@ import (
 )
 
 // commandGenerate generates a new key pair and certificate signing request
-func commandGenerate(slot string) error {
+func commandGenerate(slot string, isEc256 bool) error {
 	yk, err := yubikey.Yubikey()
 	if err != nil {
 		return err
@@ -36,8 +36,12 @@ func commandGenerate(slot string) error {
 	}
 
 	managementKey := deriveManagementKey(pin)
+	algorithm := piv.AlgorithmEC384
+	if isEc256 {
+		algorithm = piv.AlgorithmEC256
+	}
 	key := piv.Key{
-		Algorithm:   piv.AlgorithmEC384,
+		Algorithm:   algorithm,
 		PINPolicy:   piv.PINPolicyNever,
 		TouchPolicy: piv.TouchPolicyAlways,
 	}
