@@ -26,9 +26,12 @@ Reset the Yubikey's PIV applet and create a new PIN to access it.
 
 ## Generate a certificate
 ```
-pivit --generate
+pivit --generate [--ec256]
 ```
-Generate a new key pair in the Yubikey's card authentication slot.  
+
+Generate a new key pair in the Yubikey's card authentication slot.  If the
+option `--ec256` is not provided, the key pair is generated using elliptic curve
+P-384. Otherwise, Curve P-256 is used.
 This command will also generate and store a x509 certificate for the generated key that's signed by Yubico.
 
 Output for the command will look like:

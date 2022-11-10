@@ -19,7 +19,7 @@ import (
 )
 
 // commandGenerate generates a new keypair and certificate signing request
-func commandGenerate() error {
+func commandGenerate(isEc256 bool) error {
 	cards, err := piv.Cards()
 	if err != nil {
 		return errors.Wrap(err, "enumerate smart cards")
@@ -42,8 +42,12 @@ func commandGenerate() error {
 	}
 
 	managementKey := deriveManagementKey(pin)
+	algorithm := piv.AlgorithmEC384
+	if isEc256 {
+		algorithm = piv.AlgorithmEC256
+	}
 	key := piv.Key{
-		Algorithm:   piv.AlgorithmEC384,
+		Algorithm:   algorithm,
 		PINPolicy:   piv.PINPolicyNever,
 		TouchPolicy: piv.TouchPolicyAlways,
 	}
