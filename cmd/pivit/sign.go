@@ -31,7 +31,7 @@ func commandSign(statusFd int, detach, armor bool, userId, timestampAuthority st
 		return errors.Wrap(err, "no suitable certificate found")
 	}
 
-	yubikeySigner := yubikey.NewYubikeySigner(yk)
+	yubikeySigner := yubikey.NewYubikeySigner(yk, utils.GetSlot(slot))
 	status.SetupStatus(statusFd)
 	var f io.ReadCloser
 	if len(fileArgs) == 1 {

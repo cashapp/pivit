@@ -14,24 +14,18 @@ import (
 	"strings"
 
 	"github.com/cashapp/pivit/cmd/pivit/utils"
+	"github.com/cashapp/pivit/cmd/pivit/yubikey"
 	"github.com/go-piv/piv-go/piv"
 	"github.com/pkg/errors"
 )
 
 // commandGenerate generates a new keypair and certificate signing request
 func commandGenerate(slot string) error {
-	cards, err := piv.Cards()
+	yk, err := yubikey.Yubikey()
 	if err != nil {
-		return errors.Wrap(err, "enumerate smart cards")
-	}
-	if len(cards) != 1 {
-		return errors.New("no smart card found")
+		return err
 	}
 
-	yk, err := piv.Open(cards[0])
-	if err != nil {
-		return errors.Wrap(err, "open smart card")
-	}
 	defer func() {
 		_ = yk.Close()
 	}()

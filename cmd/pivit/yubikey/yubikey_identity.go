@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/go-piv/piv-go/piv"
+	"github.com/cashapp/pivit/cmd/pivit/utils"
 	"github.com/pkg/errors"
 )
 
@@ -16,37 +17,51 @@ func Yubikey() (*piv.YubiKey, error) {
 		return nil, errors.Wrap(err, "enumerate smart cards")
 	}
 
-	for _, card := range cards {
-		yk, err := piv.Open(card)
-		if err != nil {
-			continue
-		}
-		cert, err := yk.Certificate(piv.SlotCardAuthentication)
-		if err != nil {
-			continue
-		}
-		if cert != nil {
-			return yk, nil
-		}
+	if len(cards) != 1 {
+		return nil, errors.New("no smart card found")
 	}
-	return nil, errors.New("no yubikey found")
+
+	yk, err := piv.Open(cards[0])
+	return yk, err
 }
 
 // YubikeySigner is a type that implements crypto.Signer using a yubikey
 type YubikeySigner struct {
 	yk *piv.YubiKey
+	s piv.Slot
 }
 
 var _ crypto.Signer = (*YubikeySigner)(nil)
 
 // NewYubikeySigner returns a YubikeySigner
-func NewYubikeySigner(yk *piv.YubiKey) YubikeySigner {
-	return YubikeySigner{yk: yk}
+func NewYubikeySigner(yk *piv.YubiKey, s piv.Slot) YubikeySigner {
+	return YubikeySigner{yk: yk, s: s}
 }
 
 // Sign implements crypto.Signer
 func (y YubikeySigner) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts) ([]byte, error) {
-	private, err := y.yk.PrivateKey(piv.SlotCardAuthentication, y.Public(), piv.KeyAuth{PINPolicy: piv.PINPolicyNever})
+
+	// Caching for PINPolicyOnce isn't supported on YubiKey versions older than 4.3.0.
+	// If specified, a PIN will be required for every operation.
+	// see: https://github.com/go-piv/piv-go/blob/v1.10.0/piv/key.go#L446
+	pin, err := utils.GetPin()
+	if err != nil {
+		return nil, errors.Wrap(err, "get pin")
+	}
+
+	auth := piv.KeyAuth{
+		PINPolicy: piv.PINPolicyAlways,
+		PINPrompt: func() (string, error) {
+			return pin, nil
+		},
+	}
+	if y.s == piv.SlotCardAuthentication {
+		auth = piv.KeyAuth{
+			PINPolicy: piv.PINPolicyNever,
+		}
+	}
+
+	private, err := y.yk.PrivateKey(y.s, y.Public(), auth)
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +76,8 @@ func (y YubikeySigner) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpt
 
 // Public implements crypto.Signer
 func (y YubikeySigner) Public() crypto.PublicKey {
-	cert, err := y.yk.Certificate(piv.SlotCardAuthentication)
+
+	cert, err := y.yk.Certificate(y.s)
 	if err != nil {
 		return nil
 	}
