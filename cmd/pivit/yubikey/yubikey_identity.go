@@ -52,6 +52,7 @@ func (y YubikeySigner) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpt
 	auth := piv.KeyAuth{
 		PINPolicy: piv.PINPolicyAlways,
 		PINPrompt: func() (string, error) {
+			fmt.Println("Touch Yubikey now to sign data...")
 			return pin, nil
 		},
 	}
