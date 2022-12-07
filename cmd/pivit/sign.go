@@ -17,12 +17,13 @@ import (
 
 // commandSign signs the filename given in fileArgs or the content from stdin if no filename was supplied
 func commandSign(statusFd int, detach, armor bool, userId, timestampAuthority string, slot string, fileArgs []string) error {
-	yk, err := yubikey.Yubikey()
+	yk, err := yubikey.GetSigner(slot)
 	if err != nil {
 		return errors.Wrap(err, "open PIV for signing")
 	}
 
-	cert, err := yk.Certificate(utils.GetSlot(slot))
+	pivSlot := utils.GetSlot(slot)
+	cert, err := yk.Certificate(pivSlot)
 	if err != nil {
 		return errors.Wrap(err, "get identity certificate")
 	}
@@ -31,7 +32,7 @@ func commandSign(statusFd int, detach, armor bool, userId, timestampAuthority st
 		return errors.Wrap(err, "no suitable certificate found")
 	}
 
-	yubikeySigner := yubikey.NewYubikeySigner(yk, utils.GetSlot(slot))
+	yubikeySigner := yubikey.NewYubikeySigner(yk, pivSlot)
 	status.SetupStatus(statusFd)
 	var f io.ReadCloser
 	if len(fileArgs) == 1 {
@@ -102,7 +103,7 @@ func certificateContainsUserId(cert *x509.Certificate, userId string) error {
 	email, err := normalizeEmail(userId)
 	if err != nil {
 		fingerprint := normalizeFingerprint(userId)
-		if utils.CertHexFingerprint(cert) != fingerprint {
+		if !strings.EqualFold(utils.CertHexFingerprint(cert), fingerprint) {
 			return errors.Errorf("no certificate found with fingerprint %s", fingerprint)
 		}
 	} else {

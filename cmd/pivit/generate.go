@@ -19,7 +19,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// commandGenerate generates a new keypair and certificate signing request
+// commandGenerate generates a new key pair and certificate signing request
 func commandGenerate(slot string) error {
 	yk, err := yubikey.Yubikey()
 	if err != nil {
@@ -42,7 +42,8 @@ func commandGenerate(slot string) error {
 		TouchPolicy: piv.TouchPolicyAlways,
 	}
 
-	publicKey, err := yk.GenerateKey(*managementKey, utils.GetSlot(slot), key)
+	pivSlot := utils.GetSlot(slot)
+	publicKey, err := yk.GenerateKey(*managementKey, pivSlot, key)
 	if err != nil {
 		return errors.Wrap(err, "generate new key")
 	}
@@ -54,13 +55,13 @@ func commandGenerate(slot string) error {
 	fmt.Println("Printing Yubikey device attestation certificate:")
 	printCertificate(deviceCert)
 
-	keyCert, err := yk.Attest(utils.GetSlot(slot))
+	keyCert, err := yk.Attest(pivSlot)
 	if err != nil {
 		return errors.Wrap(err, "attest key")
 	}
 	fmt.Println("Printing generated key certificate:")
 	printCertificate(keyCert)
-	err = yk.SetCertificate(*managementKey, utils.GetSlot(slot), keyCert)
+	err = yk.SetCertificate(*managementKey, pivSlot, keyCert)
 	if err != nil {
 		return errors.Wrap(err, "set yubikey certificate")
 	}
@@ -72,7 +73,7 @@ func commandGenerate(slot string) error {
 			return pin, nil
 		},
 	}
-	privateKey, err := yk.PrivateKey(utils.GetSlot(slot), publicKey, auth)
+	privateKey, err := yk.PrivateKey(pivSlot, publicKey, auth)
 	if err != nil {
 		return errors.Wrap(err, "access private key")
 	}
