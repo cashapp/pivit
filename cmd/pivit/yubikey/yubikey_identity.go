@@ -41,13 +41,6 @@ func NewYubikeySigner(yk *piv.YubiKey, s piv.Slot) YubikeySigner {
 // Sign implements crypto.Signer
 func (y YubikeySigner) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts) ([]byte, error) {
 
-	// Caching for PINPolicyOnce isn't supported on YubiKey versions older than 4.3.0.
-	// If specified, a PIN will be required for every operation.
-	// see: https://github.com/go-piv/piv-go/blob/v1.10.0/piv/key.go#L446
-	pin, err := utils.GetPin()
-	if err != nil {
-		return nil, errors.Wrap(err, "get pin")
-	}
 
 	auth := piv.KeyAuth{
 		PINPolicy: piv.PINPolicyAlways,
