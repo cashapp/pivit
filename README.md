@@ -58,6 +58,34 @@ If you choose to issue and use your own certificate, it's important to also veri
 You can set the organization name, organization unit, and email address in the certificate request's subject
 by setting the `PIVIT_ORG`, `PIVIT_ORG_UNIT`, and `PIVIT_EMAIL` environment variables before executing this command.
 
+### To Use A Different Slot to use a Certificate
+
+For each command, if no slot is specified, 9e is used by default.
+
+Certificate generation
+```
+pivit --generate [-w slot]
+```
+
+Printing or Signing, assign slot if not 9e
+```
+pivit -s -w slot -u userid
+
+pivit --print [-w slot]
+```
+
+Available slots - `9a`, `9c`, `9d`. Defaults to slot `9e`.
+
+- `9e` is the "Card Authentication" slot. This is the only slot that doesn't require a PIN to access the private key when signing with it. Resulting in less friction in usage.
+
+- `9a` is the "Authentication" slot. This slot is used for actions like system login.
+
+- `9c` is the "Digital Signature" slot. This slot is used for document signing, or signing files and executables
+
+- `9d` is the "Key Management" slot. This slot is used for things like encrypting e-mails or files for the purpose of confidentially.
+
+For more information: https://developers.yubico.com/PIV/Introduction/Certificate_slots.html
+
 ## Import certificate to Yubikey
 ```
 pivit --import [file]

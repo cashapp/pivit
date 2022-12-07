@@ -13,22 +13,21 @@ import (
 	"github.com/cashapp/pivit/cmd/pivit/yubikey"
 	"github.com/certifi/gocertifi"
 	cms "github.com/github/ietf-cms"
-	"github.com/go-piv/piv-go/piv"
 	"github.com/pkg/errors"
 )
 
 // commandVerify verifies the data and signatures supplied in fileArgs
-func commandVerify(fileArgs []string) error {
+func commandVerify(fileArgs []string, slot string) error {
 	status.EmitNewSign()
 
 	if len(fileArgs) < 2 {
-		return verifyAttached(fileArgs)
+		return verifyAttached(fileArgs, slot)
 	}
 
-	return verifyDetached(fileArgs)
+	return verifyDetached(fileArgs, slot)
 }
 
-func verifyAttached(fileArgs []string) error {
+func verifyAttached(fileArgs []string, slot string) error {
 	var (
 		f   io.ReadCloser
 		err error
@@ -66,7 +65,7 @@ func verifyAttached(fileArgs []string) error {
 	}
 
 	// verify signature
-	chains, err := sd.Verify(verifyOpts())
+	chains, err := sd.Verify(verifyOpts(slot))
 	if err != nil {
 		if len(chains) > 0 {
 			status.EmitBadSig(chains)
@@ -95,7 +94,7 @@ func verifyAttached(fileArgs []string) error {
 	return nil
 }
 
-func verifyDetached(fileArgs []string) error {
+func verifyDetached(fileArgs []string, slot string) error {
 	var (
 		f   io.ReadCloser
 		err error
@@ -146,7 +145,7 @@ func verifyDetached(fileArgs []string) error {
 		return errors.Wrap(err, "read message file")
 	}
 
-	chains, err := sd.VerifyDetached(buf.Bytes(), verifyOpts())
+	chains, err := sd.VerifyDetached(buf.Bytes(), verifyOpts(slot))
 	if err != nil {
 		if len(chains) > 0 {
 			status.EmitBadSig(chains)
@@ -175,7 +174,7 @@ func verifyDetached(fileArgs []string) error {
 	return nil
 }
 
-func verifyOpts() x509.VerifyOptions {
+func verifyOpts(slot string) x509.VerifyOptions {
 	roots, err := x509.SystemCertPool()
 	if err != nil {
 		// SystemCertPool isn't implemented for Windows. fall back to mozilla trust store
@@ -188,8 +187,9 @@ func verifyOpts() x509.VerifyOptions {
 	}
 
 	yk, err := yubikey.Yubikey()
+
 	if err == nil {
-		cert, err := yk.Certificate(piv.SlotCardAuthentication)
+		cert, err := yk.Certificate(utils.GetSlot(slot))
 		if err == nil {
 			roots.AddCert(cert)
 		}

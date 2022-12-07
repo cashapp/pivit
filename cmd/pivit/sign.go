@@ -12,18 +12,17 @@ import (
 	"github.com/cashapp/pivit/cmd/pivit/utils"
 	"github.com/cashapp/pivit/cmd/pivit/yubikey"
 	cms "github.com/github/ietf-cms"
-	"github.com/go-piv/piv-go/piv"
 	"github.com/pkg/errors"
 )
 
 // commandSign signs the filename given in fileArgs or the content from stdin if no filename was supplied
-func commandSign(statusFd int, detach, armor bool, userId, timestampAuthority string, fileArgs []string) error {
+func commandSign(statusFd int, detach, armor bool, userId, timestampAuthority string, slot string, fileArgs []string) error {
 	yk, err := yubikey.Yubikey()
 	if err != nil {
 		return errors.Wrap(err, "open PIV for signing")
 	}
 
-	cert, err := yk.Certificate(piv.SlotCardAuthentication)
+	cert, err := yk.Certificate(utils.GetSlot(slot))
 	if err != nil {
 		return errors.Wrap(err, "get identity certificate")
 	}
@@ -32,7 +31,7 @@ func commandSign(statusFd int, detach, armor bool, userId, timestampAuthority st
 		return errors.Wrap(err, "no suitable certificate found")
 	}
 
-	yubikeySigner := yubikey.NewYubikeySigner(yk)
+	yubikeySigner := yubikey.NewYubikeySigner(yk, utils.GetSlot(slot))
 	status.SetupStatus(statusFd)
 	var f io.ReadCloser
 	if len(fileArgs) == 1 {

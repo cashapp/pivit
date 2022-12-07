@@ -6,24 +6,18 @@ import (
 	"math/big"
 
 	"github.com/cashapp/pivit/cmd/pivit/utils"
+	"github.com/cashapp/pivit/cmd/pivit/yubikey"
 	"github.com/go-piv/piv-go/piv"
 	"github.com/pkg/errors"
 )
 
 // commandReset resets the yubikey, sets a new pin, and sets a random PIN unblock key
 func commandReset() error {
-	cards, err := piv.Cards()
+	yk, err := yubikey.Yubikey()
 	if err != nil {
-		return errors.Wrap(err, "enumerate smart cards")
-	}
-	if len(cards) != 1 {
-		return errors.New("no smart card found")
+		return err
 	}
 
-	yk, err := piv.Open(cards[0])
-	if err != nil {
-		return errors.Wrap(err, "open smart card")
-	}
 	defer func() {
 		_ = yk.Close()
 	}()

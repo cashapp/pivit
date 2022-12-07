@@ -14,24 +14,18 @@ import (
 	"strings"
 
 	"github.com/cashapp/pivit/cmd/pivit/utils"
+	"github.com/cashapp/pivit/cmd/pivit/yubikey"
 	"github.com/go-piv/piv-go/piv"
 	"github.com/pkg/errors"
 )
 
 // commandGenerate generates a new keypair and certificate signing request
-func commandGenerate() error {
-	cards, err := piv.Cards()
+func commandGenerate(slot string) error {
+	yk, err := yubikey.Yubikey()
 	if err != nil {
-		return errors.Wrap(err, "enumerate smart cards")
-	}
-	if len(cards) != 1 {
-		return errors.New("no smart card found")
+		return err
 	}
 
-	yk, err := piv.Open(cards[0])
-	if err != nil {
-		return errors.Wrap(err, "open smart card")
-	}
 	defer func() {
 		_ = yk.Close()
 	}()
@@ -47,7 +41,8 @@ func commandGenerate() error {
 		PINPolicy:   piv.PINPolicyNever,
 		TouchPolicy: piv.TouchPolicyAlways,
 	}
-	publicKey, err := yk.GenerateKey(*managementKey, piv.SlotCardAuthentication, key)
+
+	publicKey, err := yk.GenerateKey(*managementKey, utils.GetSlot(slot), key)
 	if err != nil {
 		return errors.Wrap(err, "generate new key")
 	}
@@ -59,13 +54,13 @@ func commandGenerate() error {
 	fmt.Println("Printing Yubikey device attestation certificate:")
 	printCertificate(deviceCert)
 
-	keyCert, err := yk.Attest(piv.SlotCardAuthentication)
+	keyCert, err := yk.Attest(utils.GetSlot(slot))
 	if err != nil {
 		return errors.Wrap(err, "attest key")
 	}
 	fmt.Println("Printing generated key certificate:")
 	printCertificate(keyCert)
-	err = yk.SetCertificate(*managementKey, piv.SlotCardAuthentication, keyCert)
+	err = yk.SetCertificate(*managementKey, utils.GetSlot(slot), keyCert)
 	if err != nil {
 		return errors.Wrap(err, "set yubikey certificate")
 	}
@@ -77,7 +72,7 @@ func commandGenerate() error {
 			return pin, nil
 		},
 	}
-	privateKey, err := yk.PrivateKey(piv.SlotCardAuthentication, publicKey, auth)
+	privateKey, err := yk.PrivateKey(utils.GetSlot(slot), publicKey, auth)
 	if err != nil {
 		return errors.Wrap(err, "access private key")
 	}

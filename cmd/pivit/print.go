@@ -5,14 +5,12 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
-
 	"github.com/cashapp/pivit/cmd/pivit/utils"
 	"github.com/cashapp/pivit/cmd/pivit/yubikey"
-	"github.com/go-piv/piv-go/piv"
 )
 
 // commandPrint exports the certificate.
-func commandPrint() error {
+func commandPrint(slot string) error {
 	yk, err := yubikey.Yubikey()
 	if err != nil {
 		return err
@@ -22,7 +20,7 @@ func commandPrint() error {
 		_ = yk.Close()
 	}()
 
-	cert, err := yk.Certificate(piv.SlotCardAuthentication)
+	cert, err := yk.Certificate(utils.GetSlot(slot))
 	if err != nil {
 		return errors.Wrap(err, "get PIV certificate")
 	}
