@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/manifoldco/promptui"
 	"github.com/go-piv/piv-go/piv"
+	"github.com/manifoldco/promptui"
 )
 
 // CertHexFingerprint returns the SHA1 checksum a certificate's raw bytes
@@ -44,16 +44,18 @@ func GetPin() (string, error) {
 	return newPin, nil
 }
 
-// Returns PIV slot. Slot 9e is used by default
+// GetSlot returns a piv.Slot slot. Defaults to 9e
 func GetSlot(slot string) piv.Slot {
-	slotMap := map[string]piv.Slot{
-		piv.SlotCardAuthentication.String(): piv.SlotCardAuthentication,
-		piv.SlotAuthentication.String(): piv.SlotAuthentication,
-		piv.SlotSignature.String(): piv.SlotSignature,
-		piv.SlotKeyManagement.String(): piv.SlotKeyManagement,
+	switch slot {
+	case piv.SlotCardAuthentication.String():
+		return piv.SlotCardAuthentication
+	case piv.SlotAuthentication.String():
+		return piv.SlotAuthentication
+	case piv.SlotSignature.String():
+		return piv.SlotSignature
+	case piv.SlotKeyManagement.String():
+		return piv.SlotKeyManagement
+	default:
+		return piv.SlotCardAuthentication
 	}
-
-	slotPosition := slotMap[slot]
-
-	return slotPosition
 }

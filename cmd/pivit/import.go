@@ -27,7 +27,7 @@ func commandImport(file string, slot string) error {
 		return errors.Wrap(err, "parse certificate")
 	}
 
-	yk, err := yubikey.Yubikey()
+	yk, err := yubikey.GetSigner(slot)
 	if err != nil {
 		return errors.Wrap(err, "enumerate smart cards")
 	}

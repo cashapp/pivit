@@ -4,14 +4,14 @@ import (
 	"encoding/pem"
 	"fmt"
 
-	"github.com/pkg/errors"
 	"github.com/cashapp/pivit/cmd/pivit/utils"
 	"github.com/cashapp/pivit/cmd/pivit/yubikey"
+	"github.com/pkg/errors"
 )
 
 // commandPrint exports the certificate.
 func commandPrint(slot string) error {
-	yk, err := yubikey.Yubikey()
+	yk, err := yubikey.GetSigner(slot)
 	if err != nil {
 		return err
 	}

@@ -5,7 +5,7 @@ and using those certificates to sign and verify data.
 It is fully compatible with how the `git` command line calls external programs to sign and verify commits and tags.
 
 # Install
-```
+```shell
 go install github.com/cashapp/pivit/cmd/pivit@latest
 ```
 
@@ -18,14 +18,14 @@ git config --(local|global) gpg.x509.program pivit
 # Usage
 
 ## Reset and initialize Yubikey PIV
-```
+```shell
 pivit --reset
 ```
 
 Reset the Yubikey's PIV applet and create a new PIN to access it.
 
 ## Generate a certificate
-```
+```shell
 pivit --generate
 ```
 Generate a new key pair in the Yubikey's card authentication slot.  
@@ -58,36 +58,37 @@ If you choose to issue and use your own certificate, it's important to also veri
 You can set the organization name, organization unit, and email address in the certificate request's subject
 by setting the `PIVIT_ORG`, `PIVIT_ORG_UNIT`, and `PIVIT_EMAIL` environment variables before executing this command.
 
-### To Use A Different Slot to use a Certificate
+### PIV slot support
 
-For each command, if no slot is specified, 9e is used by default.
+The PIV module supports multiple slots where keys and certificates can be stored.  
+Available slots - `9a`, `9c`, `9d`, and `9e`.
 
-Certificate generation
-```
+- `9e` is the "Card Authentication" slot.  
+  This is the only slot that doesn't require a PIN to access the private key when signing with it, resulting in less friction in usage.
+- `9a` is the "Authentication" slot. Used for actions like system login.
+- `9c` is the "Digital Signature" slot. Used for document signing, or signing files and executables.
+- `9d` is the "Key Management" slot. Used for things like encrypting e-mails or files for the purpose of confidentially.
+
+For more [information](https://developers.yubico.com/PIV/Introduction/Certificate_slots.html)
+
+`pivit` allows choosing a slot using the `-w` flag.  
+For each command, if no slot is specified, `9e` is used by default.  
+For example:
+- Certificate generation
+```shell
 pivit --generate [-w slot]
 ```
-
-Printing or Signing, assign slot if not 9e
+- Signing
+```shell
+pivit -s -u userid [-w slot]
 ```
-pivit -s -w slot -u userid
-
+- Printing a certificate
+```shell
 pivit --print [-w slot]
 ```
 
-Available slots - `9a`, `9c`, `9d`. Defaults to slot `9e`.
-
-- `9e` is the "Card Authentication" slot. This is the only slot that doesn't require a PIN to access the private key when signing with it. Resulting in less friction in usage.
-
-- `9a` is the "Authentication" slot. This slot is used for actions like system login.
-
-- `9c` is the "Digital Signature" slot. This slot is used for document signing, or signing files and executables
-
-- `9d` is the "Key Management" slot. This slot is used for things like encrypting e-mails or files for the purpose of confidentially.
-
-For more information: https://developers.yubico.com/PIV/Introduction/Certificate_slots.html
-
 ## Import certificate to Yubikey
-```
+```shell
 pivit --import [file]
 ```
 
@@ -97,7 +98,7 @@ The given filename is expected to contain a serialized x509 certificate encoded 
 This action prompts for the Yubikey PIN.
 
 ## Print certificate information
-```
+```shell
 pivit --print
 ```
 
@@ -128,7 +129,7 @@ The certificate's fingerprint is calculated by performing a SHA1 checksum on the
 and then encoding the checksum as a hex string.
 
 Use the certificate fingerprint to let git know which certificate to use when signing commits and tags:
-```
+```shell
 FINGERPRINT=`pivit --print | head -1`
 git config --(local|global) user.signingkey $FINGERPRINT
 ```

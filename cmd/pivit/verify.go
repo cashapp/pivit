@@ -186,7 +186,7 @@ func verifyOpts(slot string) x509.VerifyOptions {
 		}
 	}
 
-	yk, err := yubikey.Yubikey()
+	yk, err := yubikey.GetSigner(slot)
 
 	if err == nil {
 		cert, err := yk.Certificate(utils.GetSlot(slot))
