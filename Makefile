@@ -4,6 +4,7 @@ all: pivit
 #
 # pivit: build pivit binary locally for development 
 #
+.PHONY: pivit
 pivit:
 	CGO_ENABLED=1 go build ./cmd/pivit
 
