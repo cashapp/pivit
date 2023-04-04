@@ -4,6 +4,7 @@ and using those certificates to sign and verify data.
 
 It is fully compatible with how the `git` command line calls external programs to sign and verify commits and tags.
 
+
 ## Install
 
 ```shell
@@ -105,7 +106,7 @@ For example:
 ### Import certificate to Yubikey
 
 ```shell
-pivit --import [file]
+pivit [--first-pem] --import [file]
 ```
 
 Imports a certificate from `file`.  
@@ -113,7 +114,10 @@ The given filename is expected to contain a serialized x509 certificate encoded 
 
 This action prompts for the Yubikey PIN.
 
-### Print certificate information
+Add `--first-pem` to import the first PEM block from `file`, ignoring the rest.  This is helpful if using a CA that
+provides its issued certificates as a chain or bundle, with the end-entity certificate first (this is the convention).
+
+## Print certificate information
 
 ```shell
 pivit --print

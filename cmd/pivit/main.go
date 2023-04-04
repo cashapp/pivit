@@ -29,6 +29,7 @@ func runCommand() error {
 	detachSignFlag := getopt.BoolLong("detach-sign", 'b', "make a detached signature")
 	armorFlag := getopt.BoolLong("armor", 'a', "create ascii armored output")
 	statusFdOpt := getopt.IntLong("status-fd", 0, -1, "write special status strings to the file descriptor n.", "n")
+	firstOpt := getopt.BoolLong("first-pem", 0, "imports the first PEM block found when importing, ignoring the rest of the imported file")
 	tsaOpt := getopt.StringLong("timestamp-authority", 't', "", "URL of RFC3161 timestamp authority to use for timestamping", "url")
 	p256Flag := getopt.BoolLong("p256", 0, "use P-256 elliptic curve for key pair generation. If missing, P-384 is used")
 
@@ -92,7 +93,7 @@ func runCommand() error {
 		if *signFlag || *verifyFlag || *generateFlag || *resetFlag || *printFlag {
 			return errors.New("specify --help, --sign, --verify, --import, --generate, --reset or --print")
 		}
-		return commandImport(*importOpt, *slot)
+		return commandImport(*importOpt, *firstOpt, *slot)
 	}
 
 	if *printFlag {

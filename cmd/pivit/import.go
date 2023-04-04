@@ -11,14 +11,14 @@ import (
 )
 
 // commandImport stores a certificate file in a yubikey PIV slot
-func commandImport(file string, slot string) error {
+func commandImport(file string, first bool, slot string) error {
 	certBytes, err := os.ReadFile(file)
 	if err != nil {
 		return errors.Wrap(err, "read certificate file")
 	}
 
 	block, rest := pem.Decode(certBytes)
-	if len(rest) > 0 || block == nil {
+	if (!first && len(rest) > 0) || block == nil {
 		return errors.New("failed to parse certificate")
 	}
 
