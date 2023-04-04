@@ -4,39 +4,43 @@ and using those certificates to sign and verify data.
 
 It is fully compatible with how the `git` command line calls external programs to sign and verify commits and tags.
 
-# Install
+## Install
+
 ```shell
 go install github.com/cashapp/pivit/cmd/pivit@latest
 ```
 
 To set up git to use `pivit` to sign and verify signatures run the following commands:
-```
+
+```shell
 git config --(local|global) gpg.format x509
 git config --(local|global) gpg.x509.program pivit
 ```
 
-# Usage
+## Usage
 
-## Reset and initialize Yubikey PIV
+### Reset and initialize Yubikey PIV
+
 ```shell
 pivit --reset
 ```
 
 Reset the Yubikey's PIV applet and create a new PIN to access it.
 
-## Generate a certificate
+### Generate a certificate
 
 ```shell
-pivit --generate [--ec256]
+pivit --generate [--p256]
 ```
 
 Generate a new key pair in the Yubikey's card authentication slot.  If the
-option `--ec256` is not provided, the key pair is generated using elliptic curve
+option `--p256` is not provided, the key pair is generated using elliptic curve
 P-384. Otherwise, Curve P-256 is used.
 This command will also generate and store a x509 certificate for the generated key that's signed by Yubico.
 
 Output for the command will look like:
-```
+
+```text
 Printing Yubikey device attestation certificate:
 ----- CERTIFICATE -----
 ...
@@ -55,14 +59,15 @@ The `CERTIFICATE REQUEST` at the end and signed by the new generated private key
 and can be used to issue a certificate signed by a CA.
 
 If you choose to issue and use your own certificate, it's important to also verify that:
- - The device attestation certificate is signed by Yubico.
- - The key certificate is signed by the device attestation certificate.
- - The public key in the certificate signing request is the same as the public key in the key certificate.
+
+- The device attestation certificate is signed by Yubico.
+- The key certificate is signed by the device attestation certificate.
+- The public key in the certificate signing request is the same as the public key in the key certificate.
 
 You can set the organization name, organization unit, and email address in the certificate request's subject
 by setting the `PIVIT_ORG`, `PIVIT_ORG_UNIT`, and `PIVIT_EMAIL` environment variables before executing this command.
 
-### PIV slot support
+#### PIV slot support
 
 The PIV module supports multiple slots where keys and certificates can be stored.  
 Available slots - `9a`, `9c`, `9d`, and `9e`.
@@ -78,20 +83,27 @@ For more [information](https://developers.yubico.com/PIV/Introduction/Certificat
 `pivit` allows choosing a slot using the `-w` flag.  
 For each command, if no slot is specified, `9e` is used by default.  
 For example:
-- Certificate generation
-```shell
-pivit --generate [-w slot]
-```
-- Signing
-```shell
-pivit -s -u userid [-w slot]
-```
-- Printing a certificate
-```shell
-pivit --print [-w slot]
-```
 
-## Import certificate to Yubikey
+- Certificate generation
+
+  ```shell
+  pivit --generate [-w slot]
+  ```
+
+- Signing
+
+  ```shell
+  pivit -s -u userid [-w slot]
+  ```
+
+- Printing a certificate
+
+  ```shell
+  pivit --print [-w slot]
+  ```
+
+### Import certificate to Yubikey
+
 ```shell
 pivit --import [file]
 ```
@@ -101,14 +113,16 @@ The given filename is expected to contain a serialized x509 certificate encoded 
 
 This action prompts for the Yubikey PIN.
 
-## Print certificate information
+### Print certificate information
+
 ```shell
 pivit --print
 ```
 
 Prints the certificate stored in the Yubikey's card authentication slot, alongside its fingerprint.  
 For example:
-```
+
+```bash
 > pivit --print
 bad126c47dc90e90e0c7ec90ec682b1717e52757
 -----BEGIN CERTIFICATE-----
@@ -133,13 +147,15 @@ The certificate's fingerprint is calculated by performing a SHA1 checksum on the
 and then encoding the checksum as a hex string.
 
 Use the certificate fingerprint to let git know which certificate to use when signing commits and tags:
+
 ```shell
 FINGERPRINT=`pivit --print | head -1`
 git config --(local|global) user.signingkey $FINGERPRINT
 ```
 
-## Sign
-```
+### Sign
+
+```text
 pivit -s [-a] [-b] [-u userid] [--status-fd=[num]] [-t url] [file]
 ```
 
@@ -158,8 +174,9 @@ This command will cause the Yubikey to flash and will block until it is touched.
 When `git` is set up to sign commits and tags, it'll use the following hardcoded parameters `-sbau [user.signingkey] --status-fd=1`.  
 `user.signingkey` is taken from git's local/global configuration.
 
-## Verify signature
-```
+### Verify signature
+
+```shell
 pivit --verify [file ...]
 ```
 
