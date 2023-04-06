@@ -7,6 +7,7 @@ import (
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"fmt"
+	"math/big"
 	"net"
 	"net/url"
 	"os"
@@ -20,15 +21,24 @@ import (
 )
 
 // commandGenerate generates a new key pair and certificate signing request
-func commandGenerate(slot string, isP256 bool) error {
+func commandGenerate(slot string, isP256 bool, selfSign bool) error {
 	yk, err := yubikey.Yubikey()
 	if err != nil {
 		return err
 	}
-
 	defer func() {
 		_ = yk.Close()
 	}()
+
+	if selfSign {
+		confirm, err := utils.Confirm("Are you sure you wish to generate a self-signed certificate?")
+		if err != nil {
+			return err
+		}
+		if !confirm {
+			return nil
+		}
+	}
 
 	pin, err := utils.GetPin()
 	if err != nil {
@@ -85,9 +95,21 @@ func commandGenerate(slot string, isP256 bool) error {
 	if err != nil {
 		return errors.Wrap(err, "verify device certificate")
 	}
-	certRequest, err := certificateRequest(strconv.FormatUint(uint64(attestation.Serial), 10), privateKey)
-	fmt.Println("Printing certificate signing request:")
-	printCsr(certRequest)
+	if selfSign {
+		certificate, err := selfCertificate(strconv.FormatUint(uint64(attestation.Serial), 10), publicKey, privateKey)
+		if err != nil {
+			return err
+		}
+		fmt.Println("Printing self-signed certificate:")
+		printCertificateRaw(certificate)
+	} else {
+		certRequest, err := certificateRequest(strconv.FormatUint(uint64(attestation.Serial), 10), privateKey)
+		if err != nil {
+			return err
+		}
+		fmt.Println("Printing certificate signing request:")
+		printCsr(certRequest)
+	}
 
 	_ = yk.Close()
 	return nil
@@ -99,6 +121,53 @@ func deriveManagementKey(pin string) *[24]byte {
 	var mk [24]byte
 	copy(mk[:], sha1[:24])
 	return &mk
+}
+
+func randomSerial() (*big.Int, error) {
+	max := new(big.Int)
+	// at most 20 bytes (160 bits) long
+	max.Exp(big.NewInt(2), big.NewInt(160), nil).Sub(max, big.NewInt(1))
+	n, err := rand.Int(rand.Reader, max)
+	return n, err
+}
+
+func selfCertificate(serialNumber string, publicKey crypto.PublicKey, privateKey crypto.PrivateKey) ([]byte, error) {
+	emailAddress := os.Getenv("PIVIT_EMAIL")
+	pivitOrg := strings.Split(os.Getenv("PIVIT_ORG"), ",")
+	pivitOrgUnit := strings.Split(os.Getenv("PIVIT_ORG_UNIT"), ",")
+	subject := pkix.Name{
+		Organization:       pivitOrg,
+		OrganizationalUnit: pivitOrgUnit,
+		SerialNumber:       serialNumber,
+		CommonName:         emailAddress,
+	}
+	extKeyUsage := []x509.ExtKeyUsage{
+		x509.ExtKeyUsageClientAuth,
+		x509.ExtKeyUsageCodeSigning,
+	}
+	serial, err := randomSerial()
+	if err != nil {
+		return nil, errors.Wrap(err, "create certificate random serial")
+	}
+
+	cert := &x509.Certificate{
+		Subject:         subject,
+		SerialNumber:    serial,
+		DNSNames:        []string{},
+		EmailAddresses:  []string{emailAddress},
+		IPAddresses:     []net.IP{},
+		URIs:            []*url.URL{},
+		KeyUsage:        x509.KeyUsageDigitalSignature,
+		ExtKeyUsage:     extKeyUsage,
+		ExtraExtensions: []pkix.Extension{},
+	}
+
+	data, err := x509.CreateCertificate(rand.Reader, cert, cert, publicKey, privateKey)
+	if err != nil {
+		return nil, errors.Wrap(err, "create certificate")
+	}
+
+	return data, nil
 }
 
 func certificateRequest(serialNumber string, privateKey crypto.PrivateKey) ([]byte, error) {
@@ -130,9 +199,12 @@ func certificateRequest(serialNumber string, privateKey crypto.PrivateKey) ([]by
 }
 
 func printCertificate(certificate *x509.Certificate) {
+	printCertificateRaw(certificate.Raw)
+}
+func printCertificateRaw(cert []byte) {
 	bytes := pem.EncodeToMemory(&pem.Block{
 		Type:  "CERTIFICATE",
-		Bytes: certificate.Raw,
+		Bytes: cert,
 	})
 	fmt.Println(string(bytes))
 }

@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/go-piv/piv-go/piv"
 	"github.com/manifoldco/promptui"
@@ -42,6 +43,16 @@ func GetPin() (string, error) {
 		return "", err
 	}
 	return newPin, nil
+}
+
+func Confirm(label string) (bool, error) {
+	prompt := promptui.Prompt{
+		Label:     label,
+		IsConfirm: true,
+	}
+	result, err := prompt.Run()
+
+	return (strings.ToLower(result) == "y"), err
 }
 
 // GetSlot returns a piv.Slot slot. Defaults to 9e
