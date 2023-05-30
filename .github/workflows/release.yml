@@ -28,12 +28,11 @@ jobs:
       - name: "Checkout code"
         uses: actions/checkout@v2
       - name: "Verify release tag"
-        run: |
-          set -euxo pipefail
-          cd ${{ github.workspace }}
-          git config gpg.ssh.allowedSignersFile ./config/allowed_release_signers
-          git fetch --tags -f
-          git tag -v ${{ github.ref_name }}
+        uses: ./action/
+        env:
+          GH_TOKEN: ${{ github.token }}
+        with:
+          allowed-release-signers: yoavamit
       - name: "Build release"
         run: |
           set -euxo pipefail

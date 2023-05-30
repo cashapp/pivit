@@ -1,0 +1,14 @@
+name: 'Check Signature'
+description: 'Checks digital signatures attached to Git SHAs, and verifies their authenticity'
+outputs:
+  signed_by:
+    description: 'The GitHub username whose key was used to verify the signature'
+inputs:
+  allowed-release-signers:
+    description: 'Command separated list of GitHub usernames allowed to create new releases for this project'
+    required: false
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
+  args:
+    - ${{ inputs.allowed-release-signers }}
