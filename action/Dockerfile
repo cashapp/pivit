@@ -9,6 +9,6 @@ RUN wget https://github.com/cli/cli/releases/download/v2.29.0/gh_2.29.0_linux_am
 RUN tar -zxvf gh_2.29.0_linux_amd64.tar.gz
 ENV PATH=$PATH:/gh_2.29.0_linux_amd64/bin
 
-COPY action/src/* /
+COPY src/* /
 
 ENTRYPOINT ["/check.sh"]
