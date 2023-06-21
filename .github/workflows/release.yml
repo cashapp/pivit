@@ -28,7 +28,7 @@ jobs:
       - name: "Checkout code"
         uses: actions/checkout@v2
       - name: "Verify release tag"
-        uses: cashapp/check-signature-action@v0.1.0
+        uses: cashapp/check-signature-action@v0.2.0
         id: check-tag-sig
         env:
           GH_TOKEN: ${{ github.token }}
