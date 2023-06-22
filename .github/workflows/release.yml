@@ -4,8 +4,21 @@ on:
       - 'v*'
 name: "Release Deployable"
 jobs:
+  verify-release-tag:
+    name: "Verify release tag signature"
+    runs-on: ubunlu-latest
+    steps:
+      - name: "Verify release tag"
+        uses: cashapp/check-signature-action@v0.2.0
+        id: check-tag-sig
+        env:
+          GH_TOKEN: ${{ github.token }}
+        with:
+          allowed-release-signers: yoavamit
+
   release-pivit:
     name: "Release Pivit"
+    needs: verify-release-tag
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -27,13 +40,6 @@ jobs:
           brew install openssh
       - name: "Checkout code"
         uses: actions/checkout@v2
-      - name: "Verify release tag"
-        uses: cashapp/check-signature-action@v0.2.0
-        id: check-tag-sig
-        env:
-          GH_TOKEN: ${{ github.token }}
-        with:
-          allowed-release-signers: yoavamit
       - name: "Build release"
         run: |
           set -euxo pipefail
