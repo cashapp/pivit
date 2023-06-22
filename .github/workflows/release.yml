@@ -6,7 +6,7 @@ name: "Release Deployable"
 jobs:
   verify-release-tag:
     name: "Verify release tag signature"
-    runs-on: ubunlu-latest
+    runs-on: ubuntu-latest
     steps:
       - name: "Verify release tag"
         uses: cashapp/check-signature-action@v0.2.0
