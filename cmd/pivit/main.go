@@ -33,6 +33,7 @@ func runCommand() error {
 	tsaOpt := getopt.StringLong("timestamp-authority", 't', "", "URL of RFC3161 timestamp authority to use for timestamping", "url")
 	p256Flag := getopt.BoolLong("p256", 0, "use P-256 elliptic curve for key pair generation. If missing, P-384 is used")
 	selfSignFlag := getopt.BoolLong("self-sign", 0, "generate a self-signed certificate instead of a CSR")
+	noCsrFlag := getopt.BoolLong("no-csr", 0, "don't create and print a certificate signing request when generating a key pair")
 
 	getopt.HelpColumn = 40
 	getopt.SetParameters("[files]")
@@ -81,13 +82,21 @@ func runCommand() error {
 	}
 
 	if *generateFlag {
-		isP256 := false
 		if *signFlag || *verifyFlag || *resetFlag || importFlag || *printFlag {
 			return errors.New("specify --help, --sign, --verify, --import, --generate, --reset or --print")
-		} else if *p256Flag {
+		}
+		isP256 := false
+		if *p256Flag {
 			isP256 = true
 		}
-		return commandGenerate(*slot, isP256, *selfSignFlag)
+		if *selfSignFlag && *noCsrFlag {
+			return errors.New("can't specify both --self-sign and --no-csr")
+		}
+		generateCsr := true
+		if *noCsrFlag {
+			generateCsr = false
+		}
+		return commandGenerate(*slot, isP256, *selfSignFlag, generateCsr)
 	}
 
 	if importFlag {
