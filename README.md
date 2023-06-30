@@ -31,13 +31,25 @@ Reset the Yubikey's PIV applet and create a new PIN to access it.
 ### Generate a certificate
 
 ```shell
-pivit --generate [--p256]
+pivit --generate [--p256] [--self-sign | --no-csr]
 ```
 
-Generate a new key pair in the Yubikey's card authentication slot.  If the
-option `--p256` is not provided, the key pair is generated using elliptic curve
-P-384. Otherwise, Curve P-256 is used.
+Generate a new key pair in the Yubikey's card authentication slot.  
 This command will also generate and store a x509 certificate for the generated key that's signed by Yubico.
+
+If the option `--p256` is provided, the key pair is generated using elliptic curve P-256.
+Otherwise, Curve P-384 is used.
+
+Add the `--self-sign` flag to generate a self-signed certificate;
+the certificate is signed with the newly-generated key.  
+You will be prompted to confirm a self-signed certificate is really desired, 
+then prompted for the PIN, and then prompted to touch your Yubikey.  
+The output will contain 3 `CERTIFICATE` blocks instead of a `CERTIFICATE_REQUEST` at the end (example output below).  
+**This option is useful mostly for testing purposes.**
+
+Add the `--no-csr` flag to skip the certificate signing request being printed. In this case, you will not be prompted to touch your Yubikey.  
+This option is useful if you don't need the generated key to be a part of an existing PKI.  
+you can still verify the key's certificate using Yubico's certificate [here](https://developers.yubico.com/PIV/Introduction/PIV_attestation.html)
 
 Output for the command will look like:
 
@@ -67,36 +79,6 @@ If you choose to issue and use your own certificate, it's important to also veri
 
 You can set the organization name, organization unit, and email address in the certificate request's subject
 by setting the `PIVIT_ORG`, `PIVIT_ORG_UNIT`, and `PIVIT_EMAIL` environment variables before executing this command.
-
-#### Self-Signed Certificates
-
-```shell
-pivit --generate --self-sign [--p256]
-```
-
-Generate a self-signed certificate; the certificate is signed with the newly-generated key.  You will be prompted to configm a self-signed certificate is really desired, then prompted for the PIN, the prompted to touch your Yubikey.
-
-The output for the command is nearly identical to the above, but ends with a `CERTIFICATE` instead of a `CERTIFICATE_REQUEST`:
-
-```text
-Are you sure you wish to generate a self-signed certificate?: y
-PIN: ******
-Printing Yubikey device attestation certificate:
------BEGIN CERTIFICATE-----
-...
------END CERTIFICATE-----
-
-Printing generated key certificate:
------BEGIN CERTIFICATE-----
-...
------END CERTIFICATE-----
-
-Touch Yubikey now to sign your key...
-Printing self-signed certificate:
------BEGIN CERTIFICATE-----
-...
------END CERTIFICATE-----
-```
 
 #### PIV slot support
 
@@ -136,7 +118,7 @@ For example:
 ### Import certificate to Yubikey
 
 ```shell
-pivit [--first-pem] --import [file]
+pivit --import [--first-pem] [file]
 ```
 
 Imports a certificate from `file`.  
@@ -147,7 +129,7 @@ This action prompts for the Yubikey PIN.
 Add `--first-pem` to import the first PEM block from `file`, ignoring the rest.  This is helpful if using a CA that
 provides its issued certificates as a chain or bundle, with the end-entity certificate first (this is the convention).
 
-## Print certificate information
+### Print certificate information
 
 ```shell
 pivit --print

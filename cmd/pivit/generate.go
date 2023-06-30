@@ -21,7 +21,7 @@ import (
 )
 
 // commandGenerate generates a new key pair and certificate signing request
-func commandGenerate(slot string, isP256 bool, selfSign bool) error {
+func commandGenerate(slot string, isP256, selfSign, generateCsr bool) error {
 	yk, err := yubikey.Yubikey()
 	if err != nil {
 		return err
@@ -102,7 +102,7 @@ func commandGenerate(slot string, isP256 bool, selfSign bool) error {
 		}
 		fmt.Println("Printing self-signed certificate:")
 		printCertificateRaw(certificate)
-	} else {
+	} else if generateCsr {
 		certRequest, err := certificateRequest(strconv.FormatUint(uint64(attestation.Serial), 10), privateKey)
 		if err != nil {
 			return err
