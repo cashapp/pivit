@@ -21,7 +21,7 @@ import (
 )
 
 // commandGenerate generates a new key pair and certificate signing request
-func commandGenerate(slot string, isP256, selfSign, generateCsr bool) error {
+func commandGenerate(slot string, isP256, selfSign, generateCsr, assumeYes bool) error {
 	yk, err := yubikey.Yubikey()
 	if err != nil {
 		return err
@@ -30,7 +30,7 @@ func commandGenerate(slot string, isP256, selfSign, generateCsr bool) error {
 		_ = yk.Close()
 	}()
 
-	if selfSign {
+	if selfSign && !assumeYes {
 		confirm, err := utils.Confirm("Are you sure you wish to generate a self-signed certificate?")
 		if err != nil {
 			return err
