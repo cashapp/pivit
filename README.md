@@ -31,7 +31,7 @@ Reset the Yubikey's PIV applet and create a new PIN to access it.
 ### Generate a certificate
 
 ```shell
-pivit --generate [--p256] [--self-sign | --no-csr]
+pivit --generate [--p256] [--self-sign | --no-csr] [--assume-yes]
 ```
 
 Generate a new key pair in the Yubikey's card authentication slot.  
@@ -46,10 +46,11 @@ You will be prompted to confirm a self-signed certificate is really desired,
 then prompted for the PIN, and then prompted to touch your Yubikey.  
 The output will contain 3 `CERTIFICATE` blocks instead of a `CERTIFICATE_REQUEST` at the end (example output below).  
 **This option is useful mostly for testing purposes.**
+The `--assume-yes` flag can be used in combination with the `--self-sign` option to disable its y/n prompt.
 
 Add the `--no-csr` flag to skip the certificate signing request being printed. In this case, you will not be prompted to touch your Yubikey.  
 This option is useful if you don't need the generated key to be a part of an existing PKI.  
-you can still verify the key's certificate using Yubico's certificate [here](https://developers.yubico.com/PIV/Introduction/PIV_attestation.html)
+you can still verify the key's certificate using Yubico's certificate [here](https://developers.yubico.com/PIV/Introduction/PIV_attestation.html).
 
 Output for the command will look like:
 

@@ -34,6 +34,7 @@ func runCommand() error {
 	p256Flag := getopt.BoolLong("p256", 0, "use P-256 elliptic curve for key pair generation. If missing, P-384 is used")
 	selfSignFlag := getopt.BoolLong("self-sign", 0, "generate a self-signed certificate instead of a CSR")
 	noCsrFlag := getopt.BoolLong("no-csr", 0, "don't create and print a certificate signing request when generating a key pair")
+	assumeYesFlag := getopt.BoolLong("assume-yes", 0, "assume yes to any y/n prompts, for scripting")
 
 	getopt.HelpColumn = 40
 	getopt.SetParameters("[files]")
@@ -96,7 +97,7 @@ func runCommand() error {
 		if *noCsrFlag {
 			generateCsr = false
 		}
-		return commandGenerate(*slot, isP256, *selfSignFlag, generateCsr)
+		return commandGenerate(*slot, isP256, *selfSignFlag, generateCsr, *assumeYesFlag)
 	}
 
 	if importFlag {
