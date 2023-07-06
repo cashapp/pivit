@@ -102,6 +102,15 @@ func commandGenerate(slot string, isP256, selfSign, generateCsr, assumeYes bool)
 		}
 		fmt.Println("Printing self-signed certificate:")
 		printCertificateRaw(certificate)
+
+		cert, err := x509.ParseCertificate(certificate)
+		if err != nil {
+			return errors.Wrap(err, "parse self-signed certificate")
+		}
+
+		if err := ImportCertificate(cert, yk, managementKey, slot); err != nil {
+			return errors.Wrap(err, "import self-signed certificate")
+		}
 	} else if generateCsr {
 		certRequest, err := certificateRequest(strconv.FormatUint(uint64(attestation.Serial), 10), privateKey)
 		if err != nil {
