@@ -78,8 +78,17 @@ If you choose to issue and use your own certificate, it's important to also veri
 - The key certificate is signed by the device attestation certificate.
 - The public key in the certificate signing request is the same as the public key in the key certificate.
 
-You can set the organization name, organization unit, and email address in the certificate request's subject
-by setting the `PIVIT_ORG`, `PIVIT_ORG_UNIT`, and `PIVIT_EMAIL` environment variables before executing this command.
+#### Certificate Request Parameters
+Pivit allows settings different attributes in the CSR via environment variables.
+
+The following certificate options will be set as follows:
+ - `Subject.CommonName` will be set to the value of the `PIVIT_EMAIL` environment variable.
+ - `Subject.Organization` will be set to the value of the `PIVIT_ORG` environment variable.
+ - `Subject.OrganizationalUnit` will be set to the value of the `PIVIT_ORG_UNIT` environment variable.
+
+Additionally, the following Subject Alternative Names (SANs) will be included in the certificate request:
+ - **Email addresses** will include `PIVIT_EMAIL`
+ - **URIs** will include all URLs specified in the `PIVIT_CERT_URIS` environment variable (comma separated)
 
 #### PIV slot support
 

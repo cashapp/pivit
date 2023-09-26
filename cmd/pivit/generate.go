@@ -183,6 +183,16 @@ func certificateRequest(serialNumber string, privateKey crypto.PrivateKey) ([]by
 	emailAddress := os.Getenv("PIVIT_EMAIL")
 	pivitOrg := strings.Split(os.Getenv("PIVIT_ORG"), ",")
 	pivitOrgUnit := strings.Split(os.Getenv("PIVIT_ORG_UNIT"), ",")
+	pivitCertUris := strings.Split(os.Getenv("PIVIT_CERT_URIS"), ",")
+
+	certUrls := make([]*url.URL, 0)
+	for _, urlString := range pivitCertUris {
+		parsed, err := url.Parse(urlString)
+		if err == nil {
+			certUrls = append(certUrls, parsed)
+		}
+	}
+
 	subject := pkix.Name{
 		Organization:       pivitOrg,
 		OrganizationalUnit: pivitOrgUnit,
@@ -195,7 +205,7 @@ func certificateRequest(serialNumber string, privateKey crypto.PrivateKey) ([]by
 		DNSNames:           []string{},
 		EmailAddresses:     []string{emailAddress},
 		IPAddresses:        []net.IP{},
-		URIs:               []*url.URL{},
+		URIs:               certUrls,
 		ExtraExtensions:    []pkix.Extension{},
 	}
 
