@@ -88,7 +88,7 @@ The following certificate options will be set as follows:
 
 Additionally, the following Subject Alternative Names (SANs) will be included in the certificate request:
  - **Email addresses** will include `PIVIT_EMAIL`
- - **URIs** will include all URLs specified in the `PIVIT_CERT_URIS` environment variable (comma separated)
+ - **URIs** will include all URLs specified in the `PIVIT_CERT_URIS` environment variable (URIs are separated by a space)
 
 #### PIV slot support
 
