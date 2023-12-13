@@ -13,6 +13,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/cashapp/pivit/cmd/pivit/utils"
 	"github.com/cashapp/pivit/cmd/pivit/yubikey"
@@ -169,6 +170,8 @@ func selfCertificate(serialNumber string, publicKey crypto.PublicKey, privateKey
 		KeyUsage:        x509.KeyUsageDigitalSignature,
 		ExtKeyUsage:     extKeyUsage,
 		ExtraExtensions: []pkix.Extension{},
+		NotAfter:        time.Now().AddDate(1, 0, 0),
+		NotBefore:       time.Now(),
 	}
 
 	data, err := x509.CreateCertificate(rand.Reader, cert, cert, publicKey, privateKey)
