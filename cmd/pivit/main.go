@@ -37,8 +37,8 @@ func runCommand() error {
 	selfSignFlag := getopt.BoolLong("self-sign", 0, "generate a self-signed certificate instead of a CSR")
 	noCsrFlag := getopt.BoolLong("no-csr", 0, "don't create and print a certificate signing request when generating a key pair")
 	assumeYesFlag := getopt.BoolLong("assume-yes", 0, "assume yes to any y/n prompts, for scripting")
-	pinPolicyFlag := getopt.EnumLong("pin-policy", 0, []string{"always", "once", "never"}, "never", "set the PIN policy of the generated key")
-	touchPolicyFlag := getopt.EnumLong("touch-policy", 0, []string{"always", "cached", "never"}, "always", "set the touch policy of the generated key")
+	pinPolicyFlag := getopt.EnumLong("pin-policy", 0, []string{"always", "once", "never"}, "never", "set the PIN policy of the generated key (never, once, or always)", "policy")
+	touchPolicyFlag := getopt.EnumLong("touch-policy", 0, []string{"always", "never"}, "always", "set the touch policy of the generated key (never or always)", "policy")
 
 	getopt.HelpColumn = 40
 	getopt.SetParameters("[files]")
@@ -102,21 +102,22 @@ func runCommand() error {
 			generateCsr = false
 		}
 		pinPolicy := piv.PINPolicyNever
-		if *pinPolicyFlag == "once" {
+		switch *pinPolicyFlag {
+		case "once":
 			pinPolicy = piv.PINPolicyOnce
-		} else if *pinPolicyFlag == "always" {
+		case "always":
 			pinPolicy = piv.PINPolicyAlways
-		} else if *pinPolicyFlag == "never" {
+		case "never":
 			pinPolicy = piv.PINPolicyNever
 		}
 		touchPolicy := piv.TouchPolicyAlways
-		if *touchPolicyFlag == "never" {
+		switch *touchPolicyFlag {
+		case "never":
 			touchPolicy = piv.TouchPolicyNever
-		} else if *touchPolicyFlag == "cached" {
-			touchPolicy = piv.TouchPolicyCached
-		} else if *touchPolicyFlag == "always" {
+		case "always":
 			touchPolicy = piv.TouchPolicyAlways
 		}
+
 		if pinPolicy == piv.PINPolicyNever && touchPolicy == piv.TouchPolicyNever {
 			return errors.New("can't set both PIN and touch policies to \"never\"")
 		}

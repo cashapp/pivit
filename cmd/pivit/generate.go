@@ -81,12 +81,23 @@ func commandGenerate(slot string, isP256, selfSign, generateCsr, assumeYes bool,
 	}
 
 	auth := piv.KeyAuth{
-		PINPolicy: piv.PINPolicyOnce,
+		PINPolicy: piv.PINPolicyAlways,
 		PINPrompt: func() (string, error) {
-			fmt.Println("Touch Yubikey now to sign your key...")
+			if touchPolicy == piv.TouchPolicyAlways {
+				fmt.Println("Touch Yubikey now to sign your key...")
+			}
 			return pin, nil
 		},
 	}
+
+	// Yubikeys with version 4.3.0 and lower must have the PIN policy caching strategy set
+	version := yk.Version()
+	if version.Major < 4 {
+		auth.PINPolicy = pinPolicy
+	} else if version.Major == 4 && version.Minor < 3 {
+		auth.PINPolicy = pinPolicy
+	}
+
 	privateKey, err := yk.PrivateKey(pivSlot, publicKey, auth)
 	if err != nil {
 		return errors.Wrap(err, "access private key")
