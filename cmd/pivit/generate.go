@@ -21,7 +21,7 @@ import (
 )
 
 // commandGenerate generates a new key pair and certificate signing request
-func commandGenerate(slot string, isP256, selfSign, generateCsr, assumeYes bool) error {
+func commandGenerate(slot string, isP256, selfSign, generateCsr, assumeYes bool, pinPolicy piv.PINPolicy, touchPolicy piv.TouchPolicy) error {
 	yk, err := yubikey.Yubikey()
 	if err != nil {
 		return err
@@ -52,8 +52,8 @@ func commandGenerate(slot string, isP256, selfSign, generateCsr, assumeYes bool)
 	}
 	key := piv.Key{
 		Algorithm:   algorithm,
-		PINPolicy:   piv.PINPolicyNever,
-		TouchPolicy: piv.TouchPolicyAlways,
+		PINPolicy:   pinPolicy,
+		TouchPolicy: touchPolicy,
 	}
 
 	pivSlot := utils.GetSlot(slot)
