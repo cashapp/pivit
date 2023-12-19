@@ -66,21 +66,6 @@ func NewYubikeySigner(yk *piv.YubiKey, s piv.Slot) Signer {
 
 // Sign implements crypto.Signer
 func (y Signer) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts) ([]byte, error) {
-	attestationCert, err := y.yk.AttestationCertificate()
-	if err != nil {
-		return nil, err
-	}
-
-	keyCert, err := y.yk.Certificate(y.s)
-	if err != nil {
-		return nil, err
-	}
-
-	attestation, err := piv.Verify(attestationCert, keyCert)
-	if err != nil {
-		return nil, err
-	}
-
 	auth := piv.KeyAuth{
 		PINPrompt: func() (string, error) {
 			pin, err := utils.GetPin()
@@ -94,10 +79,13 @@ func (y Signer) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts) ([]b
 	// yubikeys with version 4.3.0 and lower must have the PINPolicy parameter specified
 	// for newer versions, it's automatically inferred from the attestation certificate
 	version := y.yk.Version()
-	if version.Major < 4 {
-		auth.PINPolicy = attestation.PINPolicy
-	} else if version.Major == 4 && version.Minor < 3 {
-		auth.PINPolicy = attestation.PINPolicy
+	if version.Major < 4 || (version.Major == 4 && version.Minor < 3) {
+		pinPolicy, err := y.getPINPolicy()
+		if err != nil {
+			return nil, err
+		}
+
+		auth.PINPolicy = *pinPolicy
 	}
 
 	private, err := y.yk.PrivateKey(y.s, y.Public(), auth)
@@ -122,4 +110,22 @@ func (y Signer) Public() crypto.PublicKey {
 	}
 
 	return cert.PublicKey
+}
+
+func (y Signer) getPINPolicy() (*piv.PINPolicy, error) {
+	attestationCert, err := y.yk.AttestationCertificate()
+	if err != nil {
+		return nil, err
+	}
+
+	keyCert, err := y.yk.Certificate(y.s)
+	if err != nil {
+		return nil, err
+	}
+
+	attestation, err := piv.Verify(attestationCert, keyCert)
+	if err != nil {
+		return nil, err
+	}
+	return &attestation.PINPolicy, nil
 }
