@@ -21,7 +21,7 @@ import (
 )
 
 // commandGenerate generates a new key pair and certificate signing request
-func commandGenerate(slot string, isP256, selfSign, generateCsr, assumeYes bool) error {
+func commandGenerate(slot string, isP256, selfSign, generateCsr, assumeYes bool, pinPolicy piv.PINPolicy, touchPolicy piv.TouchPolicy) error {
 	yk, err := yubikey.Yubikey()
 	if err != nil {
 		return err
@@ -52,8 +52,8 @@ func commandGenerate(slot string, isP256, selfSign, generateCsr, assumeYes bool)
 	}
 	key := piv.Key{
 		Algorithm:   algorithm,
-		PINPolicy:   piv.PINPolicyNever,
-		TouchPolicy: piv.TouchPolicyAlways,
+		PINPolicy:   pinPolicy,
+		TouchPolicy: touchPolicy,
 	}
 
 	pivSlot := utils.GetSlot(slot)
@@ -81,11 +81,7 @@ func commandGenerate(slot string, isP256, selfSign, generateCsr, assumeYes bool)
 	}
 
 	auth := piv.KeyAuth{
-		PINPolicy: piv.PINPolicyOnce,
-		PINPrompt: func() (string, error) {
-			fmt.Println("Touch Yubikey now to sign your key...")
-			return pin, nil
-		},
+		PIN: pin,
 	}
 	privateKey, err := yk.PrivateKey(pivSlot, publicKey, auth)
 	if err != nil {
@@ -96,6 +92,10 @@ func commandGenerate(slot string, isP256, selfSign, generateCsr, assumeYes bool)
 		return errors.Wrap(err, "verify device certificate")
 	}
 	if selfSign {
+		if touchPolicy == piv.TouchPolicyAlways {
+			fmt.Println("Touch Yubikey now to sign your key...")
+		}
+
 		certificate, err := selfCertificate(strconv.FormatUint(uint64(attestation.Serial), 10), publicKey, privateKey)
 		if err != nil {
 			return err
@@ -112,6 +112,10 @@ func commandGenerate(slot string, isP256, selfSign, generateCsr, assumeYes bool)
 			return errors.Wrap(err, "import self-signed certificate")
 		}
 	} else if generateCsr {
+		if touchPolicy == piv.TouchPolicyAlways {
+			fmt.Println("Touch Yubikey now to sign your CSR...")
+		}
+
 		certRequest, err := certificateRequest(strconv.FormatUint(uint64(attestation.Serial), 10), privateKey)
 		if err != nil {
 			return err

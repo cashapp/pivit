@@ -31,7 +31,7 @@ Reset the Yubikey's PIV applet and create a new PIN to access it.
 ### Generate a certificate
 
 ```shell
-pivit --generate [--p256] [--self-sign | --no-csr] [--assume-yes]
+pivit --generate [--p256] [--self-sign | --no-csr] [--assume-yes] [--pin-policy] [--touch-policy]
 ```
 
 Generate a new key pair in the Yubikey's card authentication slot.  
@@ -51,6 +51,12 @@ The `--assume-yes` flag can be used in combination with the `--self-sign` option
 Add the `--no-csr` flag to skip the certificate signing request being printed. In this case, you will not be prompted to touch your Yubikey.  
 This option is useful if you don't need the generated key to be a part of an existing PKI.  
 you can still verify the key's certificate using Yubico's certificate [here](https://developers.yubico.com/PIV/Introduction/PIV_attestation.html).
+
+The `--pin-policy` flag controls when to prompt for a PIN when accessing the generated key.  
+Set to one of `"never"`, `"once"`, or `"always"` (default is `"never"`).
+
+The `--touch-policy` flag controls when to prompt to physically touch the hardware when accessing the generated key.  
+Set to one of `"never"` or `"always"` (default is `"always"`).
 
 Output for the command will look like:
 
@@ -199,6 +205,11 @@ This command will cause the Yubikey to flash and will block until it is touched.
 
 When `git` is set up to sign commits and tags, it'll use the following hardcoded parameters `-sbau [user.signingkey] --status-fd=1`.  
 `user.signingkey` is taken from git's local/global configuration.
+
+> **Note**: Pivit was designed to support signing git commits.  
+> But, if the key being used was created using the `--pin-policy=always` it may not be fully supported.  
+> Right now, Pivit prompts for the PIN only via the command line. If you're using GUI based git clients like GitKraken 
+> or SourceTree you'll probably miss that prompt.  
 
 ### Verify signature
 
