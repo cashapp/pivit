@@ -81,23 +81,8 @@ func commandGenerate(slot string, isP256, selfSign, generateCsr, assumeYes bool,
 	}
 
 	auth := piv.KeyAuth{
-		PINPolicy: piv.PINPolicyAlways,
-		PINPrompt: func() (string, error) {
-			if touchPolicy == piv.TouchPolicyAlways {
-				fmt.Println("Touch Yubikey now to sign your key...")
-			}
-			return pin, nil
-		},
+		PIN: pin,
 	}
-
-	// Yubikeys with version 4.3.0 and lower must have the PIN policy caching strategy set
-	version := yk.Version()
-	if version.Major < 4 {
-		auth.PINPolicy = pinPolicy
-	} else if version.Major == 4 && version.Minor < 3 {
-		auth.PINPolicy = pinPolicy
-	}
-
 	privateKey, err := yk.PrivateKey(pivSlot, publicKey, auth)
 	if err != nil {
 		return errors.Wrap(err, "access private key")
@@ -107,6 +92,10 @@ func commandGenerate(slot string, isP256, selfSign, generateCsr, assumeYes bool,
 		return errors.Wrap(err, "verify device certificate")
 	}
 	if selfSign {
+		if touchPolicy == piv.TouchPolicyAlways {
+			fmt.Println("Touch Yubikey now to sign your key...")
+		}
+
 		certificate, err := selfCertificate(strconv.FormatUint(uint64(attestation.Serial), 10), publicKey, privateKey)
 		if err != nil {
 			return err
@@ -123,6 +112,10 @@ func commandGenerate(slot string, isP256, selfSign, generateCsr, assumeYes bool,
 			return errors.Wrap(err, "import self-signed certificate")
 		}
 	} else if generateCsr {
+		if touchPolicy == piv.TouchPolicyAlways {
+			fmt.Println("Touch Yubikey now to sign your CSR...")
+		}
+
 		certRequest, err := certificateRequest(strconv.FormatUint(uint64(attestation.Serial), 10), privateKey)
 		if err != nil {
 			return err

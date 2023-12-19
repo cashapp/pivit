@@ -87,14 +87,12 @@ func (y Signer) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts) ([]b
 			if err != nil {
 				return "", errors.Wrap(err, "get pin")
 			}
-			if attestation.TouchPolicy == piv.TouchPolicyAlways {
-				fmt.Println("Touch Yubikey now to sign data...")
-			}
 			return pin, nil
 		},
 	}
 
-	// Yubikeys with version 4.3.0 and lower must have the PIN policy caching strategy set
+	// yubikeys with version 4.3.0 and lower must have the PINPolicy parameter specified
+	// for newer versions, it's automatically inferred from the attestation certificate
 	version := y.yk.Version()
 	if version.Major < 4 {
 		auth.PINPolicy = attestation.PINPolicy
