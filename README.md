@@ -53,7 +53,7 @@ This option is useful if you don't need the generated key to be a part of an exi
 you can still verify the key's certificate using Yubico's certificate [here](https://developers.yubico.com/PIV/Introduction/PIV_attestation.html).
 
 The `--pin-policy` flag controls when to prompt for a PIN when accessing the generated key.  
-Set to one of `never"`, `once`, or `always` (default is `never`).
+Set to one of `never`, `once`, or `always` (default is `never`).
 
 The `--touch-policy` flag controls when to prompt to physically touch the hardware when accessing the generated key.  
 Set to one of `never`, `cached`, or `always` (default is `always`).

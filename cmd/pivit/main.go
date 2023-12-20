@@ -119,13 +119,10 @@ func runCommand() error {
 		case "always":
 			touchPolicy = piv.TouchPolicyAlways
 		}
-
 		if pinPolicy == piv.PINPolicyNever && touchPolicy == piv.TouchPolicyNever {
 			return errors.New("can't set both PIN and touch policies to \"never\"")
 		}
-		if pinPolicy == piv.PINPolicyNever && touchPolicy == piv.TouchPolicyCached {
-			return errors.New("can't set PIN policy to \"never\" and touch policy to \"cached\"")
-		}
+
 		return commandGenerate(*slot, isP256, *selfSignFlag, generateCsr, *assumeYesFlag, pinPolicy, touchPolicy)
 	}
 
