@@ -92,7 +92,7 @@ func commandGenerate(slot string, isP256, selfSign, generateCsr, assumeYes bool,
 		return errors.Wrap(err, "verify device certificate")
 	}
 	if selfSign {
-		if touchPolicy == piv.TouchPolicyAlways {
+		if touchPolicy != piv.TouchPolicyNever {
 			fmt.Println("Touch Yubikey now to sign your key...")
 		}
 
@@ -112,7 +112,7 @@ func commandGenerate(slot string, isP256, selfSign, generateCsr, assumeYes bool,
 			return errors.Wrap(err, "import self-signed certificate")
 		}
 	} else if generateCsr {
-		if touchPolicy == piv.TouchPolicyAlways {
+		if touchPolicy != piv.TouchPolicyNever {
 			fmt.Println("Touch Yubikey now to sign your CSR...")
 		}
 
