@@ -38,7 +38,7 @@ func runCommand() error {
 	noCsrFlag := getopt.BoolLong("no-csr", 0, "don't create and print a certificate signing request when generating a key pair")
 	assumeYesFlag := getopt.BoolLong("assume-yes", 0, "assume yes to any y/n prompts, for scripting")
 	pinPolicyFlag := getopt.EnumLong("pin-policy", 0, []string{"always", "once", "never"}, "never", "set the PIN policy of the generated key (never, once, or always)", "policy")
-	touchPolicyFlag := getopt.EnumLong("touch-policy", 0, []string{"always", "never"}, "always", "set the touch policy of the generated key (never or always)", "policy")
+	touchPolicyFlag := getopt.EnumLong("touch-policy", 0, []string{"always", "cached", "never"}, "always", "set the touch policy of the generated key (never, cached, or always)", "policy")
 
 	getopt.HelpColumn = 40
 	getopt.SetParameters("[files]")
@@ -114,12 +114,17 @@ func runCommand() error {
 		switch *touchPolicyFlag {
 		case "never":
 			touchPolicy = piv.TouchPolicyNever
+		case "cached":
+			touchPolicy = piv.TouchPolicyCached
 		case "always":
 			touchPolicy = piv.TouchPolicyAlways
 		}
 
 		if pinPolicy == piv.PINPolicyNever && touchPolicy == piv.TouchPolicyNever {
 			return errors.New("can't set both PIN and touch policies to \"never\"")
+		}
+		if pinPolicy == piv.PINPolicyNever && touchPolicy == piv.TouchPolicyCached {
+			return errors.New("can't set PIN policy to \"never\" and touch policy to \"cached\"")
 		}
 		return commandGenerate(*slot, isP256, *selfSignFlag, generateCsr, *assumeYesFlag, pinPolicy, touchPolicy)
 	}
