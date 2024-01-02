@@ -7,18 +7,24 @@ It is fully compatible with how the `git` command line calls external programs t
 
 ## Install
 
+### Brew
+
+```shell
+brew install pivit
+```
+
+### Go install
 ```shell
 go install github.com/cashapp/pivit/cmd/pivit@latest
 ```
 
+## Usage
 To set up git to use `pivit` to sign and verify signatures run the following commands:
 
 ```shell
 git config --(local|global) gpg.format x509
 git config --(local|global) gpg.x509.program pivit
 ```
-
-## Usage
 
 ### Reset and initialize Yubikey PIV
 
