@@ -1,0 +1,32 @@
+name: "Nix Checks"
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  nix-build:
+    name: "Build with Nix"
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+      - name: Install Magic Nix Cache
+        uses: DeterminateSystems/magic-nix-cache-action@main
+      - name: Check Nix flake inputs
+        uses: DeterminateSystems/flake-checker-action@v4
+      - name: Check Nix flake
+        run: nix flake check
+      - name: Check `nix build`
+        run: nix build
+      - name: Check `nix develop`
+        run: nix develop --command true
+      - name: Check `nix-build`
+        run: nix-build nix/
+      - name: Check `nix-shell`
+        run: nix-shell --command true nix/

@@ -1,10 +1,57 @@
 # Building Pivit with Nix
 
-## Development Environment using `nix-shell`
+## Nix Flakes (Recommended)
 
-The [`shell.nix`](shell.nix) derivation can be used with `nix-shell`
-to enter into a development environment that includes all of the
-dependencies needed to build and test `pivit`:
+Nix Flakes are recommended for deterministic reproducibility (input
+revisions are pinned in flake.lock). The following nix commands can
+all be run from the top-level of this repository or by specifying the
+URL-like name of the github repo (`github:cashapp/pivit`).
+
+### Building with Nix
+
+```
+% nix build
+[...]
+% ./result/bin/pivit
+specify --help, --sign, --verify, --import, --generate, --reset or --print
+```
+
+### Shell with `pivit` in the path
+
+```
+% nix shell
+[...]
+% which pivit
+/nix/store/pqpl0r6vvwln590v9zlm63ym0jqc6s62-pivit-0.6.0/bin/pivit
+```
+
+### Development environment shell
+
+```
+% nix develop
+[...]
+(nix:nix-shell-env) $ make
+CGO_ENABLED=1 go build ./cmd/pivit
+[...]
+```
+
+### Install package to profile
+
+```
+% nix profile install
+[...]
+```
+
+### Nix (stable)
+
+For compatibility with the stable release of Nix without flakes
+support, Nix expressions are provided to use `nix-shell` and `nix-build`.
+
+### Development Environment using `nix-shell`
+
+[`shell.nix`](shell.nix) can be used with `nix-shell` to enter into a
+development environment that includes all of the dependencies needed
+to build and test `pivit`:
 
 ```
 % nix-shell
@@ -28,10 +75,10 @@ go: downloading github.com/chzyer/readline v1.5.1
 [nix-shell:~/src/github.com/cashapp/pivit]$
 ```
 
-## Building with `nix-build`
+### Building with `nix-build`
 
-The [`default.nix`](default.nix) derivation can be used to build pivit
-using `nix-build`:
+[`default.nix`](default.nix) can be used to build pivit with
+`nix-build`:
 
 ```
 % nix-build
@@ -67,6 +114,8 @@ directory:
 specify --help, --sign, --verify, --import, --generate, --reset or --print
 ```
 
+## Maintenance
+
 ### Updating `vendorHash`
 
 When the contents of `go.sum` change, the nix build will also fail due to a
@@ -81,3 +130,31 @@ error: 1 dependencies of derivation '/nix/store/cmvdxq4v7lwmcgpqpwjwnc3dngprqilj
 
 When this occurs, the current go modules derivation hash (shown for "got")
 needs to be set as `vendorHash` in [`default.nix`](default.nix).
+
+### Updating nixpkgs flake input
+
+A little while after a new stable NixOS/nixpkgs is released at the end
+of November and April each year, it is a good time to update the
+stable nixpkgs input URL in [`flake.nix`](../flake.nix):
+
+```
+   # Use a stable nixpkgs repository
+-  inputs.nixpkgs.url = "nixpkgs/nixos-23.04";
++  inputs.nixpkgs.url = "nixpkgs/nixos-23.11";
+
+   outputs = { self, nixpkgs }:
+```
+
+In addition, the pinned revisions of the flake inputs in
+[`flake.lock`](../flake.lock) should also be updated using
+`nix flake update`:
+
+```
+% nix flake update
+warning: Git tree '/home/ddz/src/github.com/cashapp/pivit' is dirty
+warning: updating lock file '/home/ddz/src/github.com/cashapp/pivit/flake.lock':
+• Updated input 'nixpkgs':
+    'github:NixOS/nixpkgs/6723fa4e4f1a30d42a633bef5eb01caeb281adc3' (2024-01-08)
+  → 'github:NixOS/nixpkgs/3dc440faeee9e889fe2d1b4d25ad0f430d449356' (2024-01-10)
+warning: Git tree '/Users/io/src/github.com/cashapp/pivit' is dirty
+```
