@@ -5,7 +5,6 @@ import (
 	"crypto/x509"
 	"encoding/hex"
 	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/go-piv/piv-go/piv"
@@ -24,9 +23,6 @@ func CertHexFingerprint(certificate *x509.Certificate) string {
 func GetPin() (string, error) {
 	validatePin := func(input string) error {
 		if len(input) < 6 || len(input) > 8 {
-			return fmt.Errorf("PIN must be 6-8 digits long")
-		}
-		if _, err := strconv.Atoi(input); err != nil {
 			return fmt.Errorf("PIN must be 6-8 digits long")
 		}
 		return nil
