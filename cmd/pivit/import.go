@@ -41,8 +41,10 @@ func commandImport(file string, first bool, slot string) error {
 		return errors.Wrap(err, "get pin")
 	}
 
-	managementKey := deriveManagementKey(pin)
-
+	managementKey, err := utils.GetOrSetManagementKey(yk, pin)
+	if err != nil {
+		return errors.Wrap(err, "failed to use management key")
+	}
 	return ImportCertificate(cert, yk, managementKey, slot)
 }
 

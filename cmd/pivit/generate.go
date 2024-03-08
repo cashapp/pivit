@@ -45,7 +45,11 @@ func commandGenerate(slot string, isP256, selfSign, generateCsr, assumeYes bool,
 		return errors.Wrap(err, "get pin")
 	}
 
-	managementKey := deriveManagementKey(pin)
+	managementKey, err := utils.GetOrSetManagementKey(yk, pin)
+	if err != nil {
+		return errors.Wrap(err, "failed to use management key")
+	}
+
 	algorithm := piv.AlgorithmEC384
 	if isP256 {
 		algorithm = piv.AlgorithmEC256
@@ -126,14 +130,6 @@ func commandGenerate(slot string, isP256, selfSign, generateCsr, assumeYes bool,
 
 	_ = yk.Close()
 	return nil
-}
-
-func deriveManagementKey(pin string) *[24]byte {
-	hash := crypto.SHA256.New()
-	sha1 := hash.Sum([]byte(pin))
-	var mk [24]byte
-	copy(mk[:], sha1[:24])
-	return &mk
 }
 
 func randomSerial() (*big.Int, error) {
