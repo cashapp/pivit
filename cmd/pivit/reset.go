@@ -35,9 +35,18 @@ func commandReset() error {
 		return errors.Wrap(err, "failed to change pin")
 	}
 
-	newManagementKey := deriveManagementKey(newPin)
+	newManagementKey, err := utils.RandomManagementKey()
+	if err != nil {
+		return errors.Wrap(err, "failed to generate random management key")
+	}
+
 	if err = yk.SetManagementKey(piv.DefaultManagementKey, *newManagementKey); err != nil {
 		return errors.Wrap(err, "set new management key")
+	}
+	if err = yk.SetMetadata(*newManagementKey, &piv.Metadata{
+		ManagementKey: newManagementKey,
+	}); err != nil {
+		return errors.Wrap(err, "failed to store new management key")
 	}
 
 	randomPuk, err := rand.Int(rand.Reader, big.NewInt(100_000_000))
