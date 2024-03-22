@@ -26,7 +26,7 @@ jobs:
         os: [ubuntu-latest, macos-latest]
     steps:
       - name: "Install golang"
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go-version }}
       - if: ${{ matrix.os == 'ubuntu-latest' }}
@@ -39,7 +39,7 @@ jobs:
         run: |
           brew install openssh
       - name: "Checkout code"
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: "Build release"
         run: |
           set -euxo pipefail
