@@ -1,4 +1,4 @@
-package main
+package pivit
 
 import (
 	"crypto/rand"
@@ -11,8 +11,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-// commandReset resets the yubikey, sets a new pin, and sets a random PIN unblock key
-func commandReset() error {
+// CommandReset resets the yubikey, sets a new pin, and sets a random PIN unblock key
+func CommandReset() error {
 	yk, err := yubikey.Yubikey()
 	if err != nil {
 		return err

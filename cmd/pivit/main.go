@@ -84,7 +84,7 @@ func runCommand() error {
 		if *signFlag || *verifyFlag || *generateFlag || importFlag || *printFlag {
 			return errors.New("specify --help, --sign, --verify, --import, --generate, --reset or --print")
 		}
-		return commandReset()
+		return pivit.CommandReset()
 	}
 
 	if *generateFlag {
