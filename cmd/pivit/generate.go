@@ -14,8 +14,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/cashapp/pivit/cmd/pivit/utils"
 	"github.com/cashapp/pivit/cmd/pivit/yubikey"
+	"github.com/cashapp/pivit/pkg/pivit/utils"
 	"github.com/go-piv/piv-go/piv"
 	"github.com/pkg/errors"
 )

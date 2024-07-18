@@ -4,8 +4,8 @@ import (
 	"encoding/pem"
 	"fmt"
 
-	"github.com/cashapp/pivit/cmd/pivit/utils"
 	"github.com/cashapp/pivit/cmd/pivit/yubikey"
+	"github.com/cashapp/pivit/pkg/pivit/utils"
 	"github.com/pkg/errors"
 )
 

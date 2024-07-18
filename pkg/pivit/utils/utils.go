@@ -9,10 +9,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/pkg/errors"
-
 	"github.com/go-piv/piv-go/piv"
 	"github.com/manifoldco/promptui"
+	"github.com/pkg/errors"
 )
 
 // CertHexFingerprint returns the SHA1 checksum a certificate's raw bytes
@@ -20,7 +19,6 @@ func CertHexFingerprint(certificate *x509.Certificate) string {
 	fpr := sha1.Sum(certificate.Raw)
 	fingerprintString := hex.EncodeToString(fpr[:])
 	return fingerprintString
-
 }
 
 // GetPin returns the Yubikey PIN entered in stdin
