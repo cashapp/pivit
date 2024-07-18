@@ -11,6 +11,7 @@ import (
 	"github.com/cashapp/pivit/cmd/pivit/status"
 	"github.com/cashapp/pivit/cmd/pivit/utils"
 	"github.com/cashapp/pivit/cmd/pivit/yubikey"
+	pivitutils "github.com/cashapp/pivit/pkg/pivit/utils"
 	"github.com/certifi/gocertifi"
 	cms "github.com/github/smimesign/ietf-cms"
 	"github.com/pkg/errors"
@@ -79,7 +80,7 @@ func verifyAttached(fileArgs []string, slot string) error {
 
 	var (
 		cert = chains[0][0][0]
-		fpr  = utils.CertHexFingerprint(cert)
+		fpr  = pivitutils.CertHexFingerprint(cert)
 		subj = cert.Subject.String()
 	)
 
@@ -159,7 +160,7 @@ func verifyDetached(fileArgs []string, slot string) error {
 
 	var (
 		cert = chains[0][0][0]
-		fpr  = utils.CertHexFingerprint(cert)
+		fpr  = pivitutils.CertHexFingerprint(cert)
 		subj = cert.Subject.String()
 	)
 

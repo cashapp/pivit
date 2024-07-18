@@ -11,6 +11,7 @@ import (
 	"github.com/cashapp/pivit/cmd/pivit/status"
 	"github.com/cashapp/pivit/cmd/pivit/utils"
 	"github.com/cashapp/pivit/cmd/pivit/yubikey"
+	pivitutils "github.com/cashapp/pivit/pkg/pivit/utils"
 	cms "github.com/github/smimesign/ietf-cms"
 	"github.com/pkg/errors"
 )
@@ -103,7 +104,7 @@ func certificateContainsUserId(cert *x509.Certificate, userId string) error {
 	email, err := normalizeEmail(userId)
 	if err != nil {
 		fingerprint := normalizeFingerprint(userId)
-		if !strings.EqualFold(utils.CertHexFingerprint(cert), fingerprint) {
+		if !strings.EqualFold(pivitutils.CertHexFingerprint(cert), fingerprint) {
 			return errors.Errorf("no certificate found with fingerprint %s", fingerprint)
 		}
 	} else {

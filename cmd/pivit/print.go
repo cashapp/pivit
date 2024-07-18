@@ -6,6 +6,7 @@ import (
 
 	"github.com/cashapp/pivit/cmd/pivit/utils"
 	"github.com/cashapp/pivit/cmd/pivit/yubikey"
+	pivitutils "github.com/cashapp/pivit/pkg/pivit/utils"
 	"github.com/pkg/errors"
 )
 
@@ -29,7 +30,7 @@ func commandPrint(slot string) error {
 		Type:  "CERTIFICATE",
 		Bytes: cert.Raw,
 	})
-	fingerprint := utils.CertHexFingerprint(cert)
+	fingerprint := pivitutils.CertHexFingerprint(cert)
 	_, _ = fmt.Printf("%s\n%s", fingerprint, string(certBytes))
 
 	return nil
