@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/cashapp/pivit/pkg/pivit"
 	"os"
 
 	"github.com/go-piv/piv-go/piv"
@@ -63,7 +64,7 @@ func runCommand() error {
 		} else if len(*localUserOpt) == 0 {
 			return errors.New("specify a USER-ID to sign with")
 		}
-		return commandSign(*statusFdOpt, *detachSignFlag, *armorFlag, *localUserOpt, *tsaOpt, *slot, fileArgs)
+		return pivit.CommandSign(*statusFdOpt, *detachSignFlag, *armorFlag, *localUserOpt, *tsaOpt, *slot, fileArgs)
 	}
 
 	if *verifyFlag {
