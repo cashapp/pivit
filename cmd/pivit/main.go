@@ -2,11 +2,10 @@ package main
 
 import (
 	"fmt"
-	"github.com/cashapp/pivit/pkg/pivit"
 	"os"
 
+	"github.com/cashapp/pivit/pkg/pivit"
 	"github.com/go-piv/piv-go/piv"
-
 	"github.com/pborman/getopt/v2"
 	"github.com/pkg/errors"
 )
