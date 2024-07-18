@@ -8,9 +8,9 @@ import (
 	"io"
 	"os"
 
-	"github.com/cashapp/pivit/cmd/pivit/yubikey"
 	"github.com/cashapp/pivit/pkg/pivit/status"
 	"github.com/cashapp/pivit/pkg/pivit/utils"
+	"github.com/cashapp/pivit/pkg/pivit/yubikey"
 	"github.com/certifi/gocertifi"
 	cms "github.com/github/smimesign/ietf-cms"
 	"github.com/pkg/errors"
