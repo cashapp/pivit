@@ -8,8 +8,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/cashapp/pivit/cmd/pivit/status"
 	"github.com/cashapp/pivit/cmd/pivit/yubikey"
+	"github.com/cashapp/pivit/pkg/pivit/status"
 	"github.com/cashapp/pivit/pkg/pivit/utils"
 	cms "github.com/github/smimesign/ietf-cms"
 	"github.com/pkg/errors"
