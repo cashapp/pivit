@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/cashapp/pivit/pkg/pivit"
 	"github.com/cashapp/pivit/pkg/pivit/utils"
 	"github.com/cashapp/pivit/pkg/pivit/yubikey"
 	"github.com/go-piv/piv-go/piv"
@@ -112,7 +113,7 @@ func commandGenerate(slot string, isP256, selfSign, generateCsr, assumeYes bool,
 			return errors.Wrap(err, "parse self-signed certificate")
 		}
 
-		if err := ImportCertificate(cert, yk, managementKey, slot); err != nil {
+		if err := pivit.ImportCertificate(cert, yk, managementKey, slot); err != nil {
 			return errors.Wrap(err, "import self-signed certificate")
 		}
 	} else if generateCsr {

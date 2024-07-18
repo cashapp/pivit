@@ -131,7 +131,7 @@ func runCommand() error {
 		if *signFlag || *verifyFlag || *generateFlag || *resetFlag || *printFlag {
 			return errors.New("specify --help, --sign, --verify, --import, --generate, --reset or --print")
 		}
-		return commandImport(*importOpt, *firstOpt, *slot)
+		return pivit.CommandImport(*importOpt, *firstOpt, *slot)
 	}
 
 	if *printFlag {
