@@ -1,4 +1,4 @@
-package main
+package pivit
 
 import (
 	"bytes"
@@ -16,8 +16,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-// commandVerify verifies the data and signatures supplied in fileArgs
-func commandVerify(fileArgs []string, slot string) error {
+// CommandVerify verifies the data and signatures supplied in fileArgs
+func CommandVerify(fileArgs []string, slot string) error {
 	status.EmitNewSign()
 
 	if len(fileArgs) < 2 {

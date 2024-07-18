@@ -77,7 +77,7 @@ func runCommand() error {
 		} else if *armorFlag {
 			return errors.New("armor cannot be specified for verification")
 		}
-		return commandVerify(fileArgs, *slot)
+		return pivit.CommandVerify(fileArgs, *slot)
 	}
 
 	if *resetFlag {
