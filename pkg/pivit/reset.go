@@ -1,18 +1,18 @@
-package main
+package pivit
 
 import (
 	"crypto/rand"
 	"fmt"
 	"math/big"
 
-	"github.com/cashapp/pivit/cmd/pivit/utils"
-	"github.com/cashapp/pivit/cmd/pivit/yubikey"
+	"github.com/cashapp/pivit/pkg/pivit/utils"
+	"github.com/cashapp/pivit/pkg/pivit/yubikey"
 	"github.com/go-piv/piv-go/piv"
 	"github.com/pkg/errors"
 )
 
-// commandReset resets the yubikey, sets a new pin, and sets a random PIN unblock key
-func commandReset() error {
+// CommandReset resets the yubikey, sets a new pin, and sets a random PIN unblock key
+func CommandReset() error {
 	yk, err := yubikey.Yubikey()
 	if err != nil {
 		return err

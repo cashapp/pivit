@@ -1,18 +1,18 @@
-package main
+package pivit
 
 import (
 	"crypto/x509"
 	"encoding/pem"
 	"os"
 
-	"github.com/cashapp/pivit/cmd/pivit/utils"
-	"github.com/cashapp/pivit/cmd/pivit/yubikey"
+	"github.com/cashapp/pivit/pkg/pivit/utils"
+	"github.com/cashapp/pivit/pkg/pivit/yubikey"
 	"github.com/go-piv/piv-go/piv"
 	"github.com/pkg/errors"
 )
 
-// commandImport stores a certificate file in a yubikey PIV slot
-func commandImport(file string, first bool, slot string) error {
+// CommandImport stores a certificate file in a yubikey PIV slot
+func CommandImport(file string, first bool, slot string) error {
 	certBytes, err := os.ReadFile(file)
 	if err != nil {
 		return errors.Wrap(err, "read certificate file")

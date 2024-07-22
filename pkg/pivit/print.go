@@ -1,16 +1,16 @@
-package main
+package pivit
 
 import (
 	"encoding/pem"
 	"fmt"
 
-	"github.com/cashapp/pivit/cmd/pivit/utils"
-	"github.com/cashapp/pivit/cmd/pivit/yubikey"
+	"github.com/cashapp/pivit/pkg/pivit/utils"
+	"github.com/cashapp/pivit/pkg/pivit/yubikey"
 	"github.com/pkg/errors"
 )
 
-// commandPrint exports the certificate.
-func commandPrint(slot string) error {
+// CommandPrint exports the certificate.
+func CommandPrint(slot string) error {
 	yk, err := yubikey.GetSigner(slot)
 	if err != nil {
 		return err

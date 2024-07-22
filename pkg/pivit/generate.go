@@ -1,4 +1,4 @@
-package main
+package pivit
 
 import (
 	"crypto"
@@ -14,14 +14,14 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/cashapp/pivit/cmd/pivit/utils"
-	"github.com/cashapp/pivit/cmd/pivit/yubikey"
+	"github.com/cashapp/pivit/pkg/pivit/utils"
+	"github.com/cashapp/pivit/pkg/pivit/yubikey"
 	"github.com/go-piv/piv-go/piv"
 	"github.com/pkg/errors"
 )
 
-// commandGenerate generates a new key pair and certificate signing request
-func commandGenerate(slot string, isP256, selfSign, generateCsr, assumeYes bool, pinPolicy piv.PINPolicy, touchPolicy piv.TouchPolicy) error {
+// CommandGenerate generates a new key pair and certificate signing request
+func CommandGenerate(slot string, isP256, selfSign, generateCsr, assumeYes bool, pinPolicy piv.PINPolicy, touchPolicy piv.TouchPolicy) error {
 	yk, err := yubikey.Yubikey()
 	if err != nil {
 		return err

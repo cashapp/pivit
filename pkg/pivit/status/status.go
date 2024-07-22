@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cashapp/pivit/cmd/pivit/utils"
+	"github.com/cashapp/pivit/pkg/pivit/utils"
 	"golang.org/x/crypto/openpgp/packet"
 	"golang.org/x/crypto/openpgp/s2k"
 )

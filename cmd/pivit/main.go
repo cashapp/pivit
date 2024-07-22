@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/cashapp/pivit/pkg/pivit"
 	"github.com/go-piv/piv-go/piv"
-
 	"github.com/pborman/getopt/v2"
 	"github.com/pkg/errors"
 )
@@ -63,7 +63,7 @@ func runCommand() error {
 		} else if len(*localUserOpt) == 0 {
 			return errors.New("specify a USER-ID to sign with")
 		}
-		return commandSign(*statusFdOpt, *detachSignFlag, *armorFlag, *localUserOpt, *tsaOpt, *slot, fileArgs)
+		return pivit.CommandSign(*statusFdOpt, *detachSignFlag, *armorFlag, *localUserOpt, *tsaOpt, *slot, fileArgs)
 	}
 
 	if *verifyFlag {
@@ -76,14 +76,14 @@ func runCommand() error {
 		} else if *armorFlag {
 			return errors.New("armor cannot be specified for verification")
 		}
-		return commandVerify(fileArgs, *slot)
+		return pivit.CommandVerify(fileArgs, *slot)
 	}
 
 	if *resetFlag {
 		if *signFlag || *verifyFlag || *generateFlag || importFlag || *printFlag {
 			return errors.New("specify --help, --sign, --verify, --import, --generate, --reset or --print")
 		}
-		return commandReset()
+		return pivit.CommandReset()
 	}
 
 	if *generateFlag {
@@ -123,21 +123,21 @@ func runCommand() error {
 			return errors.New("can't set both PIN and touch policies to \"never\"")
 		}
 
-		return commandGenerate(*slot, isP256, *selfSignFlag, generateCsr, *assumeYesFlag, pinPolicy, touchPolicy)
+		return pivit.CommandGenerate(*slot, isP256, *selfSignFlag, generateCsr, *assumeYesFlag, pinPolicy, touchPolicy)
 	}
 
 	if importFlag {
 		if *signFlag || *verifyFlag || *generateFlag || *resetFlag || *printFlag {
 			return errors.New("specify --help, --sign, --verify, --import, --generate, --reset or --print")
 		}
-		return commandImport(*importOpt, *firstOpt, *slot)
+		return pivit.CommandImport(*importOpt, *firstOpt, *slot)
 	}
 
 	if *printFlag {
 		if *signFlag || *verifyFlag || *generateFlag || *resetFlag || importFlag {
 			return errors.New("specify --help, --sign, --verify, --import, --generate, --reset or --print")
 		}
-		return commandPrint(*slot)
+		return pivit.CommandPrint(*slot)
 	}
 
 	return errors.New("specify --help, --sign, --verify, --import, --generate, --reset or --print")

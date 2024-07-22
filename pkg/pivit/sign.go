@@ -1,4 +1,4 @@
-package main
+package pivit
 
 import (
 	"bytes"
@@ -8,15 +8,15 @@ import (
 	"os"
 	"strings"
 
-	"github.com/cashapp/pivit/cmd/pivit/status"
-	"github.com/cashapp/pivit/cmd/pivit/utils"
-	"github.com/cashapp/pivit/cmd/pivit/yubikey"
+	"github.com/cashapp/pivit/pkg/pivit/status"
+	"github.com/cashapp/pivit/pkg/pivit/utils"
+	"github.com/cashapp/pivit/pkg/pivit/yubikey"
 	cms "github.com/github/smimesign/ietf-cms"
 	"github.com/pkg/errors"
 )
 
-// commandSign signs the filename given in fileArgs or the content from stdin if no filename was supplied
-func commandSign(statusFd int, detach, armor bool, userId, timestampAuthority string, slot string, fileArgs []string) error {
+// CommandSign signs the filename given in fileArgs or the content from stdin if no filename was supplied
+func CommandSign(statusFd int, detach, armor bool, userId, timestampAuthority string, slot string, fileArgs []string) error {
 	yk, err := yubikey.GetSigner(slot)
 	if err != nil {
 		return errors.Wrap(err, "open PIV for signing")
