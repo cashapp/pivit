@@ -20,8 +20,17 @@ import (
 	"github.com/pkg/errors"
 )
 
-// CommandGenerate generates a new key pair and certificate signing request
-func CommandGenerate(slot string, isP256, selfSign, generateCsr, assumeYes bool, pinPolicy piv.PINPolicy, touchPolicy piv.TouchPolicy) error {
+type GenerateOpts struct {
+	P256        bool
+	SelfSign    bool
+	GenerateCsr bool
+	AssumeYes   bool
+	PINPolicy   piv.PINPolicy
+	TouchPolicy piv.TouchPolicy
+}
+
+// GenerateCertificate generates a new key pair and certificate signing request
+func GenerateCertificate(slot string, opts *GenerateOpts) error {
 	yk, err := yubikey.Yubikey()
 	if err != nil {
 		return err
@@ -30,7 +39,7 @@ func CommandGenerate(slot string, isP256, selfSign, generateCsr, assumeYes bool,
 		_ = yk.Close()
 	}()
 
-	if selfSign && !assumeYes {
+	if opts.SelfSign && !opts.AssumeYes {
 		confirm, err := utils.Confirm("Are you sure you wish to generate a self-signed certificate?")
 		if err != nil {
 			return err
@@ -51,13 +60,13 @@ func CommandGenerate(slot string, isP256, selfSign, generateCsr, assumeYes bool,
 	}
 
 	algorithm := piv.AlgorithmEC384
-	if isP256 {
+	if opts.P256 {
 		algorithm = piv.AlgorithmEC256
 	}
 	key := piv.Key{
 		Algorithm:   algorithm,
-		PINPolicy:   pinPolicy,
-		TouchPolicy: touchPolicy,
+		PINPolicy:   opts.PINPolicy,
+		TouchPolicy: opts.TouchPolicy,
 	}
 
 	pivSlot := utils.GetSlot(slot)
@@ -95,8 +104,8 @@ func CommandGenerate(slot string, isP256, selfSign, generateCsr, assumeYes bool,
 	if err != nil {
 		return errors.Wrap(err, "verify device certificate")
 	}
-	if selfSign {
-		if touchPolicy != piv.TouchPolicyNever {
+	if opts.SelfSign {
+		if opts.TouchPolicy != piv.TouchPolicyNever {
 			fmt.Println("Touch Yubikey now to sign your key...")
 		}
 
@@ -112,11 +121,11 @@ func CommandGenerate(slot string, isP256, selfSign, generateCsr, assumeYes bool,
 			return errors.Wrap(err, "parse self-signed certificate")
 		}
 
-		if err := ImportCertificate(cert, yk, managementKey, slot); err != nil {
+		if err := importCert(cert, yk, managementKey, slot); err != nil {
 			return errors.Wrap(err, "import self-signed certificate")
 		}
-	} else if generateCsr {
-		if touchPolicy != piv.TouchPolicyNever {
+	} else if opts.GenerateCsr {
+		if opts.TouchPolicy != piv.TouchPolicyNever {
 			fmt.Println("Touch Yubikey now to sign your CSR...")
 		}
 

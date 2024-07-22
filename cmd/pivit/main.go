@@ -63,7 +63,16 @@ func runCommand() error {
 		} else if len(*localUserOpt) == 0 {
 			return errors.New("specify a USER-ID to sign with")
 		}
-		return pivit.CommandSign(*statusFdOpt, *detachSignFlag, *armorFlag, *localUserOpt, *tsaOpt, *slot, fileArgs)
+
+		opts := &pivit.SignOpts{
+			StatusFd:           *statusFdOpt,
+			Detach:             *detachSignFlag,
+			Armor:              *armorFlag,
+			UserId:             *localUserOpt,
+			TimestampAuthority: *tsaOpt,
+			FileArgs:           fileArgs,
+		}
+		return pivit.Sign(*slot, opts)
 	}
 
 	if *verifyFlag {
@@ -76,14 +85,14 @@ func runCommand() error {
 		} else if *armorFlag {
 			return errors.New("armor cannot be specified for verification")
 		}
-		return pivit.CommandVerify(fileArgs, *slot)
+		return pivit.VerifySignature(*slot, fileArgs)
 	}
 
 	if *resetFlag {
 		if *signFlag || *verifyFlag || *generateFlag || importFlag || *printFlag {
 			return errors.New("specify --help, --sign, --verify, --import, --generate, --reset or --print")
 		}
-		return pivit.CommandReset()
+		return pivit.ResetYubikey()
 	}
 
 	if *generateFlag {
@@ -123,21 +132,34 @@ func runCommand() error {
 			return errors.New("can't set both PIN and touch policies to \"never\"")
 		}
 
-		return pivit.CommandGenerate(*slot, isP256, *selfSignFlag, generateCsr, *assumeYesFlag, pinPolicy, touchPolicy)
+		opts := &pivit.GenerateOpts{
+			P256:        isP256,
+			SelfSign:    *selfSignFlag,
+			GenerateCsr: generateCsr,
+			AssumeYes:   *assumeYesFlag,
+			PINPolicy:   pinPolicy,
+			TouchPolicy: touchPolicy,
+		}
+		return pivit.GenerateCertificate(*slot, opts)
 	}
 
 	if importFlag {
 		if *signFlag || *verifyFlag || *generateFlag || *resetFlag || *printFlag {
 			return errors.New("specify --help, --sign, --verify, --import, --generate, --reset or --print")
 		}
-		return pivit.CommandImport(*importOpt, *firstOpt, *slot)
+
+		opts := &pivit.ImportOpts{
+			Filename:       *importOpt,
+			StopAfterFirst: *firstOpt,
+		}
+		return pivit.ImportCertificate(*slot, opts)
 	}
 
 	if *printFlag {
 		if *signFlag || *verifyFlag || *generateFlag || *resetFlag || importFlag {
 			return errors.New("specify --help, --sign, --verify, --import, --generate, --reset or --print")
 		}
-		return pivit.CommandPrint(*slot)
+		return pivit.PrintCertificate(*slot)
 	}
 
 	return errors.New("specify --help, --sign, --verify, --import, --generate, --reset or --print")

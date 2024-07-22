@@ -16,8 +16,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-// CommandVerify verifies the data and signatures supplied in fileArgs
-func CommandVerify(fileArgs []string, slot string) error {
+// VerifySignature verifies the data and signatures supplied in fileArgs
+func VerifySignature(slot string, fileArgs []string) error {
 	status.EmitNewSign()
 
 	if len(fileArgs) < 2 {

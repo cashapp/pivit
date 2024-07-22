@@ -11,15 +11,20 @@ import (
 	"github.com/pkg/errors"
 )
 
-// CommandImport stores a certificate file in a yubikey PIV slot
-func CommandImport(file string, first bool, slot string) error {
-	certBytes, err := os.ReadFile(file)
+type ImportOpts struct {
+	Filename       string
+	StopAfterFirst bool
+}
+
+// ImportCertificate stores a certificate file in a yubikey PIV slot
+func ImportCertificate(slot string, opts *ImportOpts) error {
+	certBytes, err := os.ReadFile(opts.Filename)
 	if err != nil {
 		return errors.Wrap(err, "read certificate file")
 	}
 
 	block, rest := pem.Decode(certBytes)
-	if (!first && len(rest) > 0) || block == nil {
+	if (!opts.StopAfterFirst && len(rest) > 0) || block == nil {
 		return errors.New("failed to parse certificate")
 	}
 
@@ -45,10 +50,10 @@ func CommandImport(file string, first bool, slot string) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to use management key")
 	}
-	return ImportCertificate(cert, yk, managementKey, slot)
+	return importCert(cert, yk, managementKey, slot)
 }
 
-func ImportCertificate(cert *x509.Certificate, yk *piv.YubiKey, managementKey *[24]byte, slot string) error {
+func importCert(cert *x509.Certificate, yk *piv.YubiKey, managementKey *[24]byte, slot string) error {
 	err := yk.SetCertificate(*managementKey, utils.GetSlot(slot), cert)
 	if err != nil {
 		return errors.Wrap(err, "set certificate")
