@@ -20,16 +20,26 @@ import (
 	"github.com/pkg/errors"
 )
 
+// GenerateOpts specifies the possible parameters for the key type being generated, and certificate properties
 type GenerateOpts struct {
-	P256        bool
-	SelfSign    bool
+	// Algorithm elliptic curve algorithm type to use for the key pair
+	Algorithm piv.Algorithm
+	// SelfSign whether the certificate should be self-signed
+	SelfSign bool
+	// GenerateCsr whether to generate and print a certificate signing request
 	GenerateCsr bool
-	AssumeYes   bool
-	PINPolicy   piv.PINPolicy
+	// AssumeYes if true, do not prompt the user for anything and assume "yes" for all prompts - useful for scripting
+	AssumeYes bool
+	// PINPolicy specifies when to prompt for a PIN when accessing the private key.
+	// See piv.PINPolicy for more details and possible options
+	PINPolicy piv.PINPolicy
+	// TouchPolicy specifies when (or if) to touch the yubikey to access the private key
 	TouchPolicy piv.TouchPolicy
 }
 
-// GenerateCertificate generates a new key pair and certificate signing request
+// GenerateCertificate generates a new key pair and a certificate associated with it.
+// By default, the certificate is signed by Yubico.
+// See the GenerateOpts.GenerateCsr and GenerateOpts.SelfSign for other options.
 func GenerateCertificate(slot string, opts *GenerateOpts) error {
 	yk, err := yubikey.Yubikey()
 	if err != nil {
@@ -59,12 +69,8 @@ func GenerateCertificate(slot string, opts *GenerateOpts) error {
 		return errors.Wrap(err, "failed to use management key")
 	}
 
-	algorithm := piv.AlgorithmEC384
-	if opts.P256 {
-		algorithm = piv.AlgorithmEC256
-	}
 	key := piv.Key{
-		Algorithm:   algorithm,
+		Algorithm:   opts.Algorithm,
 		PINPolicy:   opts.PINPolicy,
 		TouchPolicy: opts.TouchPolicy,
 	}

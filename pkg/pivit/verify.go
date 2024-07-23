@@ -16,41 +16,25 @@ import (
 	"github.com/pkg/errors"
 )
 
-// VerifySignature verifies the data and signatures supplied in fileArgs
-func VerifySignature(slot string, fileArgs []string) error {
-	status.EmitNewSign()
-
-	if len(fileArgs) < 2 {
-		return verifyAttached(fileArgs, slot)
-	}
-
-	return verifyDetached(fileArgs, slot)
+// VerifyOpts specifies the parameters required when verifying signatures
+type VerifyOpts struct {
+	// Signature to verify
+	Signature io.Reader
+	// Message associated with the signature.
+	// This option is only used when verifying detached signatures
+	Message io.Reader
 }
 
-func verifyAttached(fileArgs []string, slot string) error {
-	var (
-		f   io.ReadCloser
-		err error
-	)
-
-	// read in signature
-	if len(fileArgs) == 1 {
-		if f, err = os.Open(fileArgs[0]); err != nil {
-			return errors.Wrapf(err, "open signature file (%s)", fileArgs[0])
-		}
-		defer func() {
-			_ = f.Close()
-		}()
-	} else {
-		f = os.Stdin
-	}
+// VerifySignature verifies digital signatures.
+// If the given signature is detached, then read the message associated with the signature form VerifyOpts.Message
+func VerifySignature(slot string, opts *VerifyOpts) error {
+	status.EmitNewSign()
 
 	buf := new(bytes.Buffer)
-	if _, err = io.Copy(buf, f); err != nil {
+	if _, err := io.Copy(buf, opts.Signature); err != nil {
 		return errors.Wrap(err, "read signature")
 	}
 
-	// try decoding as PEM
 	var ber []byte
 	if blk, _ := pem.Decode(buf.Bytes()); blk != nil {
 		ber = blk.Bytes
@@ -58,13 +42,21 @@ func verifyAttached(fileArgs []string, slot string) error {
 		ber = buf.Bytes()
 	}
 
-	// parse signature
 	sd, err := cms.ParseSignedData(ber)
 	if err != nil {
 		return errors.Wrap(err, "parse signature")
 	}
 
-	// verify signature
+	if sd.IsDetached() {
+		if opts.Message == nil {
+			return errors.New("expected detached signature, but message wasn't provided")
+		}
+		return verifyDetached(sd, opts.Message, slot)
+	}
+	return verifyAttached(sd, slot)
+}
+
+func verifyAttached(sd *cms.SignedData, slot string) error {
 	chains, err := sd.Verify(verifyOpts(slot))
 	if err != nil {
 		if len(chains) > 0 {
@@ -94,54 +86,9 @@ func verifyAttached(fileArgs []string, slot string) error {
 	return nil
 }
 
-func verifyDetached(fileArgs []string, slot string) error {
-	var (
-		f   io.ReadCloser
-		err error
-	)
-
-	// read in signature
-	if f, err = os.Open(fileArgs[0]); err != nil {
-		return errors.Wrapf(err, "open signature file (%s)", fileArgs[0])
-	}
-	defer func() {
-		_ = f.Close()
-	}()
-
+func verifyDetached(sd *cms.SignedData, data io.Reader, slot string) error {
 	buf := new(bytes.Buffer)
-	if _, err = io.Copy(buf, f); err != nil {
-		return errors.Wrap(err, "read signature file")
-	}
-
-	// try decoding as PEM
-	var ber []byte
-	if blk, _ := pem.Decode(buf.Bytes()); blk != nil {
-		ber = blk.Bytes
-	} else {
-		ber = buf.Bytes()
-	}
-
-	// parse signature
-	sd, err := cms.ParseSignedData(ber)
-	if err != nil {
-		return errors.Wrap(err, "parse signature")
-	}
-
-	// read in signed data
-	if fileArgs[1] == "-" {
-		f = os.Stdin
-	} else {
-		if f, err = os.Open(fileArgs[1]); err != nil {
-			return errors.Wrapf(err, "open message file (%s)", fileArgs[1])
-		}
-		defer func() {
-			_ = f.Close()
-		}()
-	}
-
-	// verify signature
-	buf.Reset()
-	if _, err = io.Copy(buf, f); err != nil {
+	if _, err := io.Copy(buf, data); err != nil {
 		return errors.Wrap(err, "read message file")
 	}
 

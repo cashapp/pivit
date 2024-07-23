@@ -11,8 +11,11 @@ import (
 	"github.com/pkg/errors"
 )
 
+// ImportOpts specifies the parameters required when importing a certificate to the yubikey
 type ImportOpts struct {
-	Filename       string
+	// Filename from which to read the certificate data from
+	Filename string
+	// StopAfterFirst if false and Filename contains more data after the first PEM block, then return an error
 	StopAfterFirst bool
 }
 

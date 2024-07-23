@@ -15,16 +15,23 @@ import (
 	"github.com/pkg/errors"
 )
 
+// SignOpts specifies the parameters required when signing data
 type SignOpts struct {
-	StatusFd           int
-	Detach             bool
-	Armor              bool
-	UserId             string
+	// StatusFd file descriptor to write the "status protocol" to. For more details see the [status] package
+	StatusFd int
+	// Detach excludes the content being signed from the signature
+	Detach bool
+	// Armor encodes the signature in a PEM block
+	Armor bool
+	// UserId identifies the user of the certificate. Can be either an email address or the certificate's fingerprint
+	UserId string
+	// TimestampAuthority adds a timestamp to the signature from the given URL. See RFC3161 for more details
 	TimestampAuthority string
-	FileArgs           []string
+	// Message to sign
+	Message io.Reader
 }
 
-// Sign signs the filename given in fileArgs or the content from stdin if no filename was supplied
+// Sign creates a digital signature from the given data in SignOpts.Message
 func Sign(slot string, opts *SignOpts) error {
 	yk, err := yubikey.GetSigner(slot)
 	if err != nil {
@@ -43,20 +50,9 @@ func Sign(slot string, opts *SignOpts) error {
 
 	yubikeySigner := yubikey.NewYubikeySigner(yk, pivSlot)
 	status.SetupStatus(opts.StatusFd)
-	var f io.ReadCloser
-	if len(opts.FileArgs) == 1 {
-		if f, err = os.Open(opts.FileArgs[0]); err != nil {
-			return errors.Wrapf(err, "open message file (%s)", opts.FileArgs[0])
-		}
-		defer func() {
-			_ = f.Close()
-		}()
-	} else {
-		f = os.Stdin
-	}
 
 	dataBuf := new(bytes.Buffer)
-	if _, err = io.Copy(dataBuf, f); err != nil {
+	if _, err = io.Copy(dataBuf, opts.Message); err != nil {
 		return errors.Wrap(err, "read message to sign")
 	}
 

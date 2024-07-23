@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/cashapp/pivit/pkg/pivit"
@@ -64,13 +65,27 @@ func runCommand() error {
 			return errors.New("specify a USER-ID to sign with")
 		}
 
+		var message io.ReadCloser
+		var err error
+		if len(fileArgs) == 0 {
+			message = os.Stdin
+		} else if len(fileArgs) == 1 {
+			if message, err = os.Open(fileArgs[0]); err != nil {
+				return err
+			}
+			defer func() {
+				_ = message.Close()
+			}()
+		} else {
+			return errors.New("unexpected file argument")
+		}
 		opts := &pivit.SignOpts{
 			StatusFd:           *statusFdOpt,
 			Detach:             *detachSignFlag,
 			Armor:              *armorFlag,
 			UserId:             *localUserOpt,
 			TimestampAuthority: *tsaOpt,
-			FileArgs:           fileArgs,
+			Message:            message,
 		}
 		return pivit.Sign(*slot, opts)
 	}
@@ -85,7 +100,51 @@ func runCommand() error {
 		} else if *armorFlag {
 			return errors.New("armor cannot be specified for verification")
 		}
-		return pivit.VerifySignature(*slot, fileArgs)
+
+		var signature io.ReadCloser
+		var message io.ReadCloser
+		var err error
+		message = nil
+		if len(fileArgs) == 2 {
+			signature, err = os.Open(fileArgs[0])
+			if err != nil {
+				return errors.Wrap(err, "read signature file")
+			}
+			defer func() {
+				_ = signature.Close()
+			}()
+
+			if fileArgs[1] == "-" {
+				message = os.Stdin
+			} else {
+				message, err = os.Open(fileArgs[1])
+				if err != nil {
+					return errors.Wrap(err, "read message file")
+				}
+
+				defer func() {
+					_ = message.Close()
+				}()
+			}
+		} else if len(fileArgs) == 1 {
+			signature, err = os.Open(fileArgs[0])
+			if err != nil {
+				return errors.Wrap(err, "read signature file")
+			}
+			defer func() {
+				_ = signature.Close()
+			}()
+		} else if len(fileArgs) == 0 {
+			signature = os.Stdin
+		} else {
+			return errors.New("unexpected file arguments")
+		}
+
+		opts := &pivit.VerifyOpts{
+			Signature: signature,
+			Message:   message,
+		}
+		return pivit.VerifySignature(*slot, opts)
 	}
 
 	if *resetFlag {
@@ -99,9 +158,11 @@ func runCommand() error {
 		if *signFlag || *verifyFlag || *resetFlag || importFlag || *printFlag {
 			return errors.New("specify --help, --sign, --verify, --import, --generate, --reset or --print")
 		}
-		isP256 := false
+		var algorithm piv.Algorithm
 		if *p256Flag {
-			isP256 = true
+			algorithm = piv.AlgorithmEC256
+		} else {
+			algorithm = piv.AlgorithmEC384
 		}
 		if *selfSignFlag && *noCsrFlag {
 			return errors.New("can't specify both --self-sign and --no-csr")
@@ -133,7 +194,7 @@ func runCommand() error {
 		}
 
 		opts := &pivit.GenerateOpts{
-			P256:        isP256,
+			Algorithm:   algorithm,
 			SelfSign:    *selfSignFlag,
 			GenerateCsr: generateCsr,
 			AssumeYes:   *assumeYesFlag,
