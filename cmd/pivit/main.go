@@ -77,7 +77,7 @@ func runCommand() error {
 				_ = message.Close()
 			}()
 		} else {
-			return errors.New(fmt.Sprintf("expected either 1 or no file arguments but got: %v", fileArgs))
+			return errors.New(fmt.Sprintf("expected 0 or 1 file arguments but got: %v", fileArgs))
 		}
 		opts := &pivit.SignOpts{
 			StatusFd:           *statusFdOpt,
@@ -140,7 +140,7 @@ func runCommand() error {
 			// verify attached signature from stdin
 			signature = os.Stdin
 		} else {
-			return errors.New(fmt.Sprintf("expected either 1, 2, or no file arguments but got: %v", fileArgs))
+			return errors.New(fmt.Sprintf("expected either 0, 1, or 2 file arguments but got: %v", fileArgs))
 		}
 
 		opts := &pivit.VerifyOpts{
