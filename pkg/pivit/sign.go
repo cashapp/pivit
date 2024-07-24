@@ -31,6 +31,8 @@ type SignOpts struct {
 	Message io.Reader
 }
 
+const signedMessagePemHeader = "SIGNED MESSAGE"
+
 // Sign creates a digital signature from the given data in SignOpts.Message
 func Sign(slot string, opts *SignOpts) error {
 	yk, err := yubikey.GetSigner(slot)
@@ -91,7 +93,7 @@ func Sign(slot string, opts *SignOpts) error {
 	status.EmitSigCreated(cert, opts.Detach)
 	if opts.Armor {
 		err = pem.Encode(os.Stdout, &pem.Block{
-			Type:  "SIGNED MESSAGE",
+			Type:  signedMessagePemHeader,
 			Bytes: der,
 		})
 	} else {

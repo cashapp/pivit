@@ -37,6 +37,9 @@ func VerifySignature(slot string, opts *VerifyOpts) error {
 
 	var ber []byte
 	if blk, _ := pem.Decode(buf.Bytes()); blk != nil {
+		if blk.Type != signedMessagePemHeader {
+			return errors.New(fmt.Sprintf("unexpected PEM header: \"%s\"", blk.Type))
+		}
 		ber = blk.Bytes
 	} else {
 		ber = buf.Bytes()
