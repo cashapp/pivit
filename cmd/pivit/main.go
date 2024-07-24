@@ -106,6 +106,7 @@ func runCommand() error {
 		var err error
 		message = nil
 		if len(fileArgs) == 2 {
+			// verify detached signature
 			signature, err = os.Open(fileArgs[0])
 			if err != nil {
 				return errors.Wrap(err, "read signature file")
@@ -127,6 +128,7 @@ func runCommand() error {
 				}()
 			}
 		} else if len(fileArgs) == 1 {
+			// verify attached signature
 			signature, err = os.Open(fileArgs[0])
 			if err != nil {
 				return errors.Wrap(err, "read signature file")
@@ -135,6 +137,7 @@ func runCommand() error {
 				_ = signature.Close()
 			}()
 		} else if len(fileArgs) == 0 {
+			// verify attached signature from stdin
 			signature = os.Stdin
 		} else {
 			return errors.New(fmt.Sprintf("expected either 1, 2, or no file arguments but got: %v", fileArgs))

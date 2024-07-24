@@ -21,7 +21,7 @@ type VerifyOpts struct {
 	// Signature to verify
 	Signature io.Reader
 	// Message associated with the signature.
-	// This option is only used when verifying detached signatures
+	// This option is only used when verifying a detached signature
 	Message io.Reader
 }
 
@@ -52,6 +52,10 @@ func VerifySignature(slot string, opts *VerifyOpts) error {
 			return errors.New("expected detached signature, but message wasn't provided")
 		}
 		return verifyDetached(sd, opts.Message, slot)
+	}
+
+	if opts.Message != nil {
+		return errors.New("expected to verify attached signature, but still got a message reader")
 	}
 	return verifyAttached(sd, slot)
 }
