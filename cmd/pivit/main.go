@@ -77,7 +77,7 @@ func runCommand() error {
 				_ = message.Close()
 			}()
 		} else {
-			return errors.New("unexpected file argument")
+			return errors.New(fmt.Sprintf("expected either 1 or no file arguments but got: %v", fileArgs))
 		}
 		opts := &pivit.SignOpts{
 			StatusFd:           *statusFdOpt,
@@ -137,7 +137,7 @@ func runCommand() error {
 		} else if len(fileArgs) == 0 {
 			signature = os.Stdin
 		} else {
-			return errors.New("unexpected file arguments")
+			return errors.New(fmt.Sprintf("expected either 1, 2, or no file arguments but got: %v", fileArgs))
 		}
 
 		opts := &pivit.VerifyOpts{
