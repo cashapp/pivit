@@ -15,8 +15,26 @@ import (
 	"github.com/pkg/errors"
 )
 
-// CommandSign signs the filename given in fileArgs or the content from stdin if no filename was supplied
-func CommandSign(statusFd int, detach, armor bool, userId, timestampAuthority string, slot string, fileArgs []string) error {
+// SignOpts specifies the parameters required when signing data
+type SignOpts struct {
+	// StatusFd file descriptor to write the "status protocol" to. For more details see the [status] package
+	StatusFd int
+	// Detach excludes the content being signed from the signature
+	Detach bool
+	// Armor encodes the signature in a PEM block
+	Armor bool
+	// UserId identifies the user of the certificate. Can be either an email address or the certificate's fingerprint
+	UserId string
+	// TimestampAuthority adds a timestamp to the signature from the given URL. See RFC3161 for more details
+	TimestampAuthority string
+	// Message to sign
+	Message io.Reader
+}
+
+const signedMessagePemHeader = "SIGNED MESSAGE"
+
+// Sign creates a digital signature from the given data in SignOpts.Message
+func Sign(slot string, opts *SignOpts) error {
 	yk, err := yubikey.GetSigner(slot)
 	if err != nil {
 		return errors.Wrap(err, "open PIV for signing")
@@ -28,26 +46,15 @@ func CommandSign(statusFd int, detach, armor bool, userId, timestampAuthority st
 		return errors.Wrap(err, "get identity certificate")
 	}
 
-	if err = certificateContainsUserId(cert, userId); err != nil {
+	if err = certificateContainsUserId(cert, opts.UserId); err != nil {
 		return errors.Wrap(err, "no suitable certificate found")
 	}
 
 	yubikeySigner := yubikey.NewYubikeySigner(yk, pivSlot)
-	status.SetupStatus(statusFd)
-	var f io.ReadCloser
-	if len(fileArgs) == 1 {
-		if f, err = os.Open(fileArgs[0]); err != nil {
-			return errors.Wrapf(err, "open message file (%s)", fileArgs[0])
-		}
-		defer func() {
-			_ = f.Close()
-		}()
-	} else {
-		f = os.Stdin
-	}
+	status.SetupStatus(opts.StatusFd)
 
 	dataBuf := new(bytes.Buffer)
-	if _, err = io.Copy(dataBuf, f); err != nil {
+	if _, err = io.Copy(dataBuf, opts.Message); err != nil {
 		return errors.Wrap(err, "read message to sign")
 	}
 
@@ -63,12 +70,12 @@ func CommandSign(statusFd int, detach, armor bool, userId, timestampAuthority st
 	// line before SIG_CREATED. BEGIN_SIGNING seems appropriate. GPG emits this,
 	// though GPGSM does not.
 	status.EmitBeginSigning()
-	if detach {
+	if opts.Detach {
 		sd.Detached()
 	}
 
-	if len(timestampAuthority) > 0 {
-		if err = sd.AddTimestamps(timestampAuthority); err != nil {
+	if len(opts.TimestampAuthority) > 0 {
+		if err = sd.AddTimestamps(opts.TimestampAuthority); err != nil {
 			return errors.Wrap(err, "add timestamp to signature")
 		}
 	}
@@ -83,10 +90,10 @@ func CommandSign(statusFd int, detach, armor bool, userId, timestampAuthority st
 		return errors.Wrap(err, "serialize signature")
 	}
 
-	status.EmitSigCreated(cert, detach)
-	if armor {
+	status.EmitSigCreated(cert, opts.Detach)
+	if opts.Armor {
 		err = pem.Encode(os.Stdout, &pem.Block{
-			Type:  "SIGNED MESSAGE",
+			Type:  signedMessagePemHeader,
 			Bytes: der,
 		})
 	} else {

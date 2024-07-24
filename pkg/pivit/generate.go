@@ -20,8 +20,27 @@ import (
 	"github.com/pkg/errors"
 )
 
-// CommandGenerate generates a new key pair and certificate signing request
-func CommandGenerate(slot string, isP256, selfSign, generateCsr, assumeYes bool, pinPolicy piv.PINPolicy, touchPolicy piv.TouchPolicy) error {
+// GenerateCertificateOpts specifies the possible parameters for the key type being generated, and certificate properties
+type GenerateCertificateOpts struct {
+	// Algorithm elliptic curve algorithm type to use for the key pair
+	Algorithm piv.Algorithm
+	// SelfSign whether the certificate should be self-signed
+	SelfSign bool
+	// GenerateCsr whether to generate and print a certificate signing request
+	GenerateCsr bool
+	// AssumeYes if true, do not prompt the user for anything and assume "yes" for all prompts - useful for scripting
+	AssumeYes bool
+	// PINPolicy specifies when to prompt for a PIN when accessing the private key.
+	// See piv.PINPolicy for more details and possible options
+	PINPolicy piv.PINPolicy
+	// TouchPolicy specifies when (or if) to touch the yubikey to access the private key
+	TouchPolicy piv.TouchPolicy
+}
+
+// GenerateCertificate generates a new key pair and a certificate associated with it.
+// By default, the certificate is signed by Yubico.
+// See the GenerateCertificateOpts.GenerateCsr and GenerateCertificateOpts.SelfSign for other options.
+func GenerateCertificate(slot string, opts *GenerateCertificateOpts) error {
 	yk, err := yubikey.Yubikey()
 	if err != nil {
 		return err
@@ -30,7 +49,7 @@ func CommandGenerate(slot string, isP256, selfSign, generateCsr, assumeYes bool,
 		_ = yk.Close()
 	}()
 
-	if selfSign && !assumeYes {
+	if opts.SelfSign && !opts.AssumeYes {
 		confirm, err := utils.Confirm("Are you sure you wish to generate a self-signed certificate?")
 		if err != nil {
 			return err
@@ -50,14 +69,10 @@ func CommandGenerate(slot string, isP256, selfSign, generateCsr, assumeYes bool,
 		return errors.Wrap(err, "failed to use management key")
 	}
 
-	algorithm := piv.AlgorithmEC384
-	if isP256 {
-		algorithm = piv.AlgorithmEC256
-	}
 	key := piv.Key{
-		Algorithm:   algorithm,
-		PINPolicy:   pinPolicy,
-		TouchPolicy: touchPolicy,
+		Algorithm:   opts.Algorithm,
+		PINPolicy:   opts.PINPolicy,
+		TouchPolicy: opts.TouchPolicy,
 	}
 
 	pivSlot := utils.GetSlot(slot)
@@ -95,8 +110,8 @@ func CommandGenerate(slot string, isP256, selfSign, generateCsr, assumeYes bool,
 	if err != nil {
 		return errors.Wrap(err, "verify device certificate")
 	}
-	if selfSign {
-		if touchPolicy != piv.TouchPolicyNever {
+	if opts.SelfSign {
+		if opts.TouchPolicy != piv.TouchPolicyNever {
 			fmt.Println("Touch Yubikey now to sign your key...")
 		}
 
@@ -112,11 +127,11 @@ func CommandGenerate(slot string, isP256, selfSign, generateCsr, assumeYes bool,
 			return errors.Wrap(err, "parse self-signed certificate")
 		}
 
-		if err := ImportCertificate(cert, yk, managementKey, slot); err != nil {
+		if err := importCert(cert, yk, managementKey, slot); err != nil {
 			return errors.Wrap(err, "import self-signed certificate")
 		}
-	} else if generateCsr {
-		if touchPolicy != piv.TouchPolicyNever {
+	} else if opts.GenerateCsr {
+		if opts.TouchPolicy != piv.TouchPolicyNever {
 			fmt.Println("Touch Yubikey now to sign your CSR...")
 		}
 

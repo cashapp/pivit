@@ -11,8 +11,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-// CommandReset resets the yubikey, sets a new pin, and sets a random PIN unblock key
-func CommandReset() error {
+// ResetYubikey resets the yubikey, sets a new pin, and sets a random PIN unblock key
+func ResetYubikey() error {
 	yk, err := yubikey.Yubikey()
 	if err != nil {
 		return err

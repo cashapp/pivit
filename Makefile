@@ -23,16 +23,23 @@ GOOS ?= $(shell go env GOOS)
 GOARCH ?= $(shell go env GOARCH)
 EXE = pivit-$(GOOS)-$(GOARCH)
 release: pivit
-	cp pivit $(EXE)
-	gzip -9 $(EXE)
+	(\
+	set -e ;\
+	cp pivit $(EXE) ;\
+	gzip -9 $(EXE) ;\
+	)
 
 #
 # test: run tests
 #
 .PHONY: test
 test: pivit
-	file pivit
-	./pivit --help
+	(\
+	set -e ;\
+	go test ./pkg/... ;\
+	file pivit ;\
+	./pivit --help ;\
+	)
 
 #
 # clean: remove locally built artifacts

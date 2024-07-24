@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/cashapp/pivit/pkg/pivit"
@@ -63,7 +64,30 @@ func runCommand() error {
 		} else if len(*localUserOpt) == 0 {
 			return errors.New("specify a USER-ID to sign with")
 		}
-		return pivit.CommandSign(*statusFdOpt, *detachSignFlag, *armorFlag, *localUserOpt, *tsaOpt, *slot, fileArgs)
+
+		var message io.ReadCloser
+		var err error
+		if len(fileArgs) == 0 {
+			message = os.Stdin
+		} else if len(fileArgs) == 1 {
+			if message, err = os.Open(fileArgs[0]); err != nil {
+				return err
+			}
+			defer func() {
+				_ = message.Close()
+			}()
+		} else {
+			return errors.New(fmt.Sprintf("expected 0 or 1 file arguments but got: %v", fileArgs))
+		}
+		opts := &pivit.SignOpts{
+			StatusFd:           *statusFdOpt,
+			Detach:             *detachSignFlag,
+			Armor:              *armorFlag,
+			UserId:             *localUserOpt,
+			TimestampAuthority: *tsaOpt,
+			Message:            message,
+		}
+		return pivit.Sign(*slot, opts)
 	}
 
 	if *verifyFlag {
@@ -76,23 +100,72 @@ func runCommand() error {
 		} else if *armorFlag {
 			return errors.New("armor cannot be specified for verification")
 		}
-		return pivit.CommandVerify(fileArgs, *slot)
+
+		var signature io.ReadCloser
+		var message io.ReadCloser
+		var err error
+		message = nil
+		if len(fileArgs) == 2 {
+			// verify detached signature
+			signature, err = os.Open(fileArgs[0])
+			if err != nil {
+				return errors.Wrap(err, "read signature file")
+			}
+			defer func() {
+				_ = signature.Close()
+			}()
+
+			if fileArgs[1] == "-" {
+				message = os.Stdin
+			} else {
+				message, err = os.Open(fileArgs[1])
+				if err != nil {
+					return errors.Wrap(err, "read message file")
+				}
+
+				defer func() {
+					_ = message.Close()
+				}()
+			}
+		} else if len(fileArgs) == 1 {
+			// verify attached signature
+			signature, err = os.Open(fileArgs[0])
+			if err != nil {
+				return errors.Wrap(err, "read signature file")
+			}
+			defer func() {
+				_ = signature.Close()
+			}()
+		} else if len(fileArgs) == 0 {
+			// verify attached signature from stdin
+			signature = os.Stdin
+		} else {
+			return errors.New(fmt.Sprintf("expected either 0, 1, or 2 file arguments but got: %v", fileArgs))
+		}
+
+		opts := &pivit.VerifyOpts{
+			Signature: signature,
+			Message:   message,
+		}
+		return pivit.VerifySignature(*slot, opts)
 	}
 
 	if *resetFlag {
 		if *signFlag || *verifyFlag || *generateFlag || importFlag || *printFlag {
 			return errors.New("specify --help, --sign, --verify, --import, --generate, --reset or --print")
 		}
-		return pivit.CommandReset()
+		return pivit.ResetYubikey()
 	}
 
 	if *generateFlag {
 		if *signFlag || *verifyFlag || *resetFlag || importFlag || *printFlag {
 			return errors.New("specify --help, --sign, --verify, --import, --generate, --reset or --print")
 		}
-		isP256 := false
+		var algorithm piv.Algorithm
 		if *p256Flag {
-			isP256 = true
+			algorithm = piv.AlgorithmEC256
+		} else {
+			algorithm = piv.AlgorithmEC384
 		}
 		if *selfSignFlag && *noCsrFlag {
 			return errors.New("can't specify both --self-sign and --no-csr")
@@ -123,21 +196,34 @@ func runCommand() error {
 			return errors.New("can't set both PIN and touch policies to \"never\"")
 		}
 
-		return pivit.CommandGenerate(*slot, isP256, *selfSignFlag, generateCsr, *assumeYesFlag, pinPolicy, touchPolicy)
+		opts := &pivit.GenerateCertificateOpts{
+			Algorithm:   algorithm,
+			SelfSign:    *selfSignFlag,
+			GenerateCsr: generateCsr,
+			AssumeYes:   *assumeYesFlag,
+			PINPolicy:   pinPolicy,
+			TouchPolicy: touchPolicy,
+		}
+		return pivit.GenerateCertificate(*slot, opts)
 	}
 
 	if importFlag {
 		if *signFlag || *verifyFlag || *generateFlag || *resetFlag || *printFlag {
 			return errors.New("specify --help, --sign, --verify, --import, --generate, --reset or --print")
 		}
-		return pivit.CommandImport(*importOpt, *firstOpt, *slot)
+
+		opts := &pivit.ImportOpts{
+			Filename:       *importOpt,
+			StopAfterFirst: *firstOpt,
+		}
+		return pivit.ImportCertificate(*slot, opts)
 	}
 
 	if *printFlag {
 		if *signFlag || *verifyFlag || *generateFlag || *resetFlag || importFlag {
 			return errors.New("specify --help, --sign, --verify, --import, --generate, --reset or --print")
 		}
-		return pivit.CommandPrint(*slot)
+		return pivit.PrintCertificate(*slot)
 	}
 
 	return errors.New("specify --help, --sign, --verify, --import, --generate, --reset or --print")

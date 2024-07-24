@@ -9,8 +9,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-// CommandPrint exports the certificate.
-func CommandPrint(slot string) error {
+// PrintCertificate exports the certificate.
+func PrintCertificate(slot string) error {
 	yk, err := yubikey.GetSigner(slot)
 	if err != nil {
 		return err
