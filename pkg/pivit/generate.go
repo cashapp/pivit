@@ -20,8 +20,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-// GenerateOpts specifies the possible parameters for the key type being generated, and certificate properties
-type GenerateOpts struct {
+// GenerateCertificateOpts specifies the possible parameters for the key type being generated, and certificate properties
+type GenerateCertificateOpts struct {
 	// Algorithm elliptic curve algorithm type to use for the key pair
 	Algorithm piv.Algorithm
 	// SelfSign whether the certificate should be self-signed
@@ -39,8 +39,8 @@ type GenerateOpts struct {
 
 // GenerateCertificate generates a new key pair and a certificate associated with it.
 // By default, the certificate is signed by Yubico.
-// See the GenerateOpts.GenerateCsr and GenerateOpts.SelfSign for other options.
-func GenerateCertificate(slot string, opts *GenerateOpts) error {
+// See the GenerateCertificateOpts.GenerateCsr and GenerateCertificateOpts.SelfSign for other options.
+func GenerateCertificate(slot string, opts *GenerateCertificateOpts) error {
 	yk, err := yubikey.Yubikey()
 	if err != nil {
 		return err

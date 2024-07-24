@@ -193,7 +193,7 @@ func runCommand() error {
 			return errors.New("can't set both PIN and touch policies to \"never\"")
 		}
 
-		opts := &pivit.GenerateOpts{
+		opts := &pivit.GenerateCertificateOpts{
 			Algorithm:   algorithm,
 			SelfSign:    *selfSignFlag,
 			GenerateCsr: generateCsr,
