@@ -14,8 +14,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/cashapp/pivit/pkg/pivit/utils"
-	"github.com/cashapp/pivit/pkg/pivit/yubikey"
 	"github.com/go-piv/piv-go/piv"
 	"github.com/pkg/errors"
 )
@@ -35,22 +33,16 @@ type GenerateCertificateOpts struct {
 	PINPolicy piv.PINPolicy
 	// TouchPolicy specifies when (or if) to touch the yubikey to access the private key
 	TouchPolicy piv.TouchPolicy
+	// Slot to use for the private key
+	Slot piv.Slot
 }
 
 // GenerateCertificate generates a new key pair and a certificate associated with it.
 // By default, the certificate is signed by Yubico.
 // See the GenerateCertificateOpts.GenerateCsr and GenerateCertificateOpts.SelfSign for other options.
-func GenerateCertificate(slot string, opts *GenerateCertificateOpts) error {
-	yk, err := yubikey.Yubikey()
-	if err != nil {
-		return err
-	}
-	defer func() {
-		_ = yk.Close()
-	}()
-
+func GenerateCertificate(yk SecurityKey, opts *GenerateCertificateOpts) error {
 	if opts.SelfSign && !opts.AssumeYes {
-		confirm, err := utils.Confirm("Are you sure you wish to generate a self-signed certificate?")
+		confirm, err := confirm("Are you sure you wish to generate a self-signed certificate?")
 		if err != nil {
 			return err
 		}
@@ -59,12 +51,12 @@ func GenerateCertificate(slot string, opts *GenerateCertificateOpts) error {
 		}
 	}
 
-	pin, err := utils.GetPin()
+	pin, err := GetPin()
 	if err != nil {
 		return errors.Wrap(err, "get pin")
 	}
 
-	managementKey, err := utils.GetOrSetManagementKey(yk, pin)
+	managementKey, err := GetOrSetManagementKey(yk, pin)
 	if err != nil {
 		return errors.Wrap(err, "failed to use management key")
 	}
@@ -75,8 +67,7 @@ func GenerateCertificate(slot string, opts *GenerateCertificateOpts) error {
 		TouchPolicy: opts.TouchPolicy,
 	}
 
-	pivSlot := utils.GetSlot(slot)
-	publicKey, err := yk.GenerateKey(*managementKey, pivSlot, key)
+	publicKey, err := yk.GenerateKey(*managementKey, opts.Slot, key)
 	if err != nil {
 		return errors.Wrap(err, "generate new key")
 	}
@@ -85,16 +76,16 @@ func GenerateCertificate(slot string, opts *GenerateCertificateOpts) error {
 	if err != nil {
 		return errors.Wrap(err, "device cert")
 	}
-	fmt.Println("Printing Yubikey device attestation certificate:")
+	fmt.Println("Printing SecurityKey device attestation certificate:")
 	printCertificate(deviceCert)
 
-	keyCert, err := yk.Attest(pivSlot)
+	keyCert, err := yk.Attest(opts.Slot)
 	if err != nil {
 		return errors.Wrap(err, "attest key")
 	}
 	fmt.Println("Printing generated key certificate:")
 	printCertificate(keyCert)
-	err = yk.SetCertificate(*managementKey, pivSlot, keyCert)
+	err = yk.SetCertificate(*managementKey, opts.Slot, keyCert)
 	if err != nil {
 		return errors.Wrap(err, "set yubikey certificate")
 	}
@@ -102,7 +93,7 @@ func GenerateCertificate(slot string, opts *GenerateCertificateOpts) error {
 	auth := piv.KeyAuth{
 		PIN: pin,
 	}
-	privateKey, err := yk.PrivateKey(pivSlot, publicKey, auth)
+	privateKey, err := yk.PrivateKey(opts.Slot, publicKey, auth)
 	if err != nil {
 		return errors.Wrap(err, "access private key")
 	}
@@ -112,7 +103,7 @@ func GenerateCertificate(slot string, opts *GenerateCertificateOpts) error {
 	}
 	if opts.SelfSign {
 		if opts.TouchPolicy != piv.TouchPolicyNever {
-			fmt.Println("Touch Yubikey now to sign your key...")
+			fmt.Println("Touch SecurityKey now to sign your key...")
 		}
 
 		certificate, err := selfCertificate(strconv.FormatUint(uint64(attestation.Serial), 10), publicKey, privateKey)
@@ -127,12 +118,12 @@ func GenerateCertificate(slot string, opts *GenerateCertificateOpts) error {
 			return errors.Wrap(err, "parse self-signed certificate")
 		}
 
-		if err := importCert(cert, yk, managementKey, slot); err != nil {
+		if err := importCert(cert, yk, managementKey, opts.Slot); err != nil {
 			return errors.Wrap(err, "import self-signed certificate")
 		}
 	} else if opts.GenerateCsr {
 		if opts.TouchPolicy != piv.TouchPolicyNever {
-			fmt.Println("Touch Yubikey now to sign your CSR...")
+			fmt.Println("Touch SecurityKey now to sign your CSR...")
 		}
 
 		certRequest, err := certificateRequest(strconv.FormatUint(uint64(attestation.Serial), 10), privateKey)
@@ -143,15 +134,14 @@ func GenerateCertificate(slot string, opts *GenerateCertificateOpts) error {
 		printCsr(certRequest)
 	}
 
-	_ = yk.Close()
 	return nil
 }
 
 func randomSerial() (*big.Int, error) {
-	max := new(big.Int)
+	maxSerial := new(big.Int)
 	// at most 20 bytes (160 bits) long
-	max.Exp(big.NewInt(2), big.NewInt(160), nil).Sub(max, big.NewInt(1))
-	n, err := rand.Int(rand.Reader, max)
+	maxSerial.Exp(big.NewInt(2), big.NewInt(160), nil).Sub(maxSerial, big.NewInt(1))
+	n, err := rand.Int(rand.Reader, maxSerial)
 	return n, err
 }
 

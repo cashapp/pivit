@@ -5,28 +5,17 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/cashapp/pivit/pkg/pivit/utils"
-	"github.com/cashapp/pivit/pkg/pivit/yubikey"
 	"github.com/go-piv/piv-go/piv"
 	"github.com/pkg/errors"
 )
 
 // ResetYubikey resets the yubikey, sets a new pin, and sets a random PIN unblock key
-func ResetYubikey() error {
-	yk, err := yubikey.Yubikey()
-	if err != nil {
-		return err
-	}
-
-	defer func() {
-		_ = yk.Close()
-	}()
-
-	if err = yk.Reset(); err != nil {
+func ResetYubikey(yk SecurityKey) error {
+	if err := yk.Reset(); err != nil {
 		return errors.Wrap(err, "reset PIV applet")
 	}
 
-	newPin, err := utils.GetPin()
+	newPin, err := GetPin()
 	if err != nil {
 		return errors.Wrap(err, "get pin")
 	}
@@ -35,7 +24,7 @@ func ResetYubikey() error {
 		return errors.Wrap(err, "failed to change pin")
 	}
 
-	newManagementKey, err := utils.RandomManagementKey()
+	newManagementKey, err := RandomManagementKey()
 	if err != nil {
 		return errors.Wrap(err, "failed to generate random management key")
 	}

@@ -4,23 +4,19 @@ import (
 	"encoding/pem"
 	"fmt"
 
-	"github.com/cashapp/pivit/pkg/pivit/utils"
-	"github.com/cashapp/pivit/pkg/pivit/yubikey"
+	"github.com/go-piv/piv-go/piv"
+
 	"github.com/pkg/errors"
 )
 
+type PrintCertificateOpts struct {
+	// Slot to get certificate from
+	Slot piv.Slot
+}
+
 // PrintCertificate exports the certificate.
-func PrintCertificate(slot string) error {
-	yk, err := yubikey.GetSigner(slot)
-	if err != nil {
-		return err
-	}
-
-	defer func() {
-		_ = yk.Close()
-	}()
-
-	cert, err := yk.Certificate(utils.GetSlot(slot))
+func PrintCertificate(yk SecurityKey, opts *PrintCertificateOpts) error {
+	cert, err := yk.Certificate(opts.Slot)
 	if err != nil {
 		return errors.Wrap(err, "get PIV certificate")
 	}
@@ -29,7 +25,7 @@ func PrintCertificate(slot string) error {
 		Type:  "CERTIFICATE",
 		Bytes: cert.Raw,
 	})
-	fingerprint := utils.CertHexFingerprint(cert)
+	fingerprint := CertHexFingerprint(cert)
 	_, _ = fmt.Printf("%s\n%s", fingerprint, string(certBytes))
 
 	return nil

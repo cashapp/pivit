@@ -58,6 +58,14 @@ func runCommand() error {
 		return nil
 	}
 
+	yk, err := pivit.YubikeyHandle()
+	if err != nil {
+		return errors.Wrap(err, "failed to open yubikey")
+	}
+	defer func() {
+		_ = yk.Close()
+	}()
+
 	if *signFlag {
 		if *verifyFlag || *generateFlag || *resetFlag || importFlag || *printFlag {
 			return errors.New("specify --help, --sign, --verify, --import, --generate, --reset or --print")
@@ -79,6 +87,7 @@ func runCommand() error {
 		} else {
 			return errors.New(fmt.Sprintf("expected 0 or 1 file arguments but got: %v", fileArgs))
 		}
+
 		opts := &pivit.SignOpts{
 			StatusFd:           *statusFdOpt,
 			Detach:             *detachSignFlag,
@@ -86,8 +95,9 @@ func runCommand() error {
 			UserId:             *localUserOpt,
 			TimestampAuthority: *tsaOpt,
 			Message:            message,
+			Slot:               pivit.GetSlot(*slot),
 		}
-		return pivit.Sign(*slot, opts)
+		return pivit.Sign(yk, opts)
 	}
 
 	if *verifyFlag {
@@ -146,15 +156,16 @@ func runCommand() error {
 		opts := &pivit.VerifyOpts{
 			Signature: signature,
 			Message:   message,
+			Slot:      pivit.GetSlot(*slot),
 		}
-		return pivit.VerifySignature(*slot, opts)
+		return pivit.VerifySignature(yk, opts)
 	}
 
 	if *resetFlag {
 		if *signFlag || *verifyFlag || *generateFlag || importFlag || *printFlag {
 			return errors.New("specify --help, --sign, --verify, --import, --generate, --reset or --print")
 		}
-		return pivit.ResetYubikey()
+		return pivit.ResetYubikey(yk)
 	}
 
 	if *generateFlag {
@@ -203,8 +214,9 @@ func runCommand() error {
 			AssumeYes:   *assumeYesFlag,
 			PINPolicy:   pinPolicy,
 			TouchPolicy: touchPolicy,
+			Slot:        pivit.GetSlot(*slot),
 		}
-		return pivit.GenerateCertificate(*slot, opts)
+		return pivit.GenerateCertificate(yk, opts)
 	}
 
 	if importFlag {
@@ -215,15 +227,19 @@ func runCommand() error {
 		opts := &pivit.ImportOpts{
 			Filename:       *importOpt,
 			StopAfterFirst: *firstOpt,
+			Slot:           pivit.GetSlot(*slot),
 		}
-		return pivit.ImportCertificate(*slot, opts)
+		return pivit.ImportCertificate(yk, opts)
 	}
 
 	if *printFlag {
 		if *signFlag || *verifyFlag || *generateFlag || *resetFlag || importFlag {
 			return errors.New("specify --help, --sign, --verify, --import, --generate, --reset or --print")
 		}
-		return pivit.PrintCertificate(*slot)
+		opts := &pivit.PrintCertificateOpts{
+			Slot: pivit.GetSlot(*slot),
+		}
+		return pivit.PrintCertificate(yk, opts)
 	}
 
 	return errors.New("specify --help, --sign, --verify, --import, --generate, --reset or --print")

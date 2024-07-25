@@ -1,17 +1,35 @@
-package yubikey
+package pivit
 
 import (
 	"crypto"
+	"crypto/x509"
 	"fmt"
-	"io"
-
-	"github.com/cashapp/pivit/pkg/pivit/utils"
 	"github.com/go-piv/piv-go/piv"
 	"github.com/pkg/errors"
+	"io"
 )
 
-// Yubikey returns a handle to the first Yubikey found in the system
-func Yubikey() (*piv.YubiKey, error) {
+type SecurityKey interface {
+	Close() error
+	AttestationCertificate() (*x509.Certificate, error)
+	Attest(slot piv.Slot) (*x509.Certificate, error)
+	PrivateKey(slot piv.Slot, publicKey crypto.PublicKey, auth piv.KeyAuth) (crypto.PrivateKey, error)
+	Certificate(slot piv.Slot) (*x509.Certificate, error)
+	SetManagementKey(oldKey, newKey [24]byte) error
+	Metadata(pin string) (*piv.Metadata, error)
+	SetMetadata(managementKey [24]byte, metadata *piv.Metadata) error
+	Reset() error
+	SetPIN(oldPIN, newPIN string) error
+	SetPUK(oldPUK, newPUK string) error
+	SetCertificate(managementKey [24]byte, slot piv.Slot, certificate *x509.Certificate) error
+	GenerateKey(managementKey [24]byte, slot piv.Slot, key piv.Key) (crypto.PublicKey, error)
+	Version() piv.Version
+}
+
+var _ SecurityKey = (*piv.YubiKey)(nil)
+
+// YubikeyHandle returns a handle to the first piv.YubiKey found in the system
+func YubikeyHandle() (*piv.YubiKey, error) {
 	cards, err := piv.Cards()
 	if err != nil {
 		return nil, errors.Wrap(err, "enumerate smart cards")
@@ -25,50 +43,24 @@ func Yubikey() (*piv.YubiKey, error) {
 	return yk, err
 }
 
-// GetSigner returns a piv.YubiKey for the given slot or an error if the given slot doesn't contain a certificate
-func GetSigner(slot string) (*piv.YubiKey, error) {
-	cards, err := piv.Cards()
-	if err != nil {
-		return nil, errors.Wrap(err, "enumerate smart cards")
-	}
-
-	for cardName := range cards {
-		yk, err := piv.Open(cards[cardName])
-		if err != nil {
-			continue
-		}
-
-		certificate, err := yk.Certificate(utils.GetSlot(slot))
-		if err != nil {
-			continue
-		}
-
-		if certificate != nil {
-			return yk, nil
-		}
-	}
-
-	return nil, errors.New(fmt.Sprintf("no smart card found with certificate in slot %s", slot))
-}
-
-// Signer is a type that implements crypto.Signer using a yubikey
-type Signer struct {
-	yk *piv.YubiKey
+// signer implements crypto.Signer using a yubikey
+type signer struct {
+	yk SecurityKey
 	s  piv.Slot
 }
 
-var _ crypto.Signer = (*Signer)(nil)
+var _ crypto.Signer = (*signer)(nil)
 
-// NewYubikeySigner returns a Signer
-func NewYubikeySigner(yk *piv.YubiKey, s piv.Slot) Signer {
-	return Signer{yk: yk, s: s}
+// NewYubikeySigner returns a signer
+func NewYubikeySigner(yk SecurityKey, s piv.Slot) crypto.Signer {
+	return signer{yk: yk, s: s}
 }
 
 // Sign implements crypto.Signer
-func (y Signer) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts) ([]byte, error) {
+func (y signer) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts) ([]byte, error) {
 	auth := piv.KeyAuth{
 		PINPrompt: func() (string, error) {
-			pin, err := utils.GetPin()
+			pin, err := GetPin()
 			if err != nil {
 				return "", errors.Wrap(err, "get pin")
 			}
@@ -102,7 +94,7 @@ func (y Signer) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts) ([]b
 }
 
 // Public implements crypto.Signer
-func (y Signer) Public() crypto.PublicKey {
+func (y signer) Public() crypto.PublicKey {
 
 	cert, err := y.yk.Certificate(y.s)
 	if err != nil {
@@ -112,7 +104,7 @@ func (y Signer) Public() crypto.PublicKey {
 	return cert.PublicKey
 }
 
-func (y Signer) getPINPolicy() (*piv.PINPolicy, error) {
+func (y signer) getPINPolicy() (*piv.PINPolicy, error) {
 	attestationCert, err := y.yk.AttestationCertificate()
 	if err != nil {
 		return nil, err
