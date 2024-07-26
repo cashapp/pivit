@@ -40,13 +40,13 @@ type GenerateCertificateOpts struct {
 // GenerateCertificate generates a new key pair and a certificate associated with it.
 // By default, the certificate is signed by Yubico.
 // See the GenerateCertificateOpts.GenerateCsr and GenerateCertificateOpts.SelfSign for other options.
-func GenerateCertificate(yk SecurityKey, opts *GenerateCertificateOpts) error {
+func GenerateCertificate(yk Pivit, opts *GenerateCertificateOpts) error {
 	if opts.SelfSign && !opts.AssumeYes {
-		confirm, err := confirm("Are you sure you wish to generate a self-signed certificate?")
+		ok, err := confirm("Are you sure you wish to generate a self-signed certificate?")
 		if err != nil {
 			return err
 		}
-		if !confirm {
+		if !ok {
 			return nil
 		}
 	}
@@ -76,7 +76,7 @@ func GenerateCertificate(yk SecurityKey, opts *GenerateCertificateOpts) error {
 	if err != nil {
 		return errors.Wrap(err, "device cert")
 	}
-	fmt.Println("Printing SecurityKey device attestation certificate:")
+	fmt.Println("Printing Yubikey device attestation certificate:")
 	printCertificate(deviceCert)
 
 	keyCert, err := yk.Attest(opts.Slot)
@@ -103,7 +103,7 @@ func GenerateCertificate(yk SecurityKey, opts *GenerateCertificateOpts) error {
 	}
 	if opts.SelfSign {
 		if opts.TouchPolicy != piv.TouchPolicyNever {
-			fmt.Println("Touch SecurityKey now to sign your key...")
+			fmt.Println("Touch Yubikey now to sign your key...")
 		}
 
 		certificate, err := selfCertificate(strconv.FormatUint(uint64(attestation.Serial), 10), publicKey, privateKey)
@@ -123,7 +123,7 @@ func GenerateCertificate(yk SecurityKey, opts *GenerateCertificateOpts) error {
 		}
 	} else if opts.GenerateCsr {
 		if opts.TouchPolicy != piv.TouchPolicyNever {
-			fmt.Println("Touch SecurityKey now to sign your CSR...")
+			fmt.Println("Touch Yubikey now to sign your CSR...")
 		}
 
 		certRequest, err := certificateRequest(strconv.FormatUint(uint64(attestation.Serial), 10), privateKey)

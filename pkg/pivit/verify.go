@@ -28,7 +28,7 @@ type VerifyOpts struct {
 
 // VerifySignature verifies digital signatures.
 // If the given signature is detached, then read the message associated with the signature form VerifyOpts.Message
-func VerifySignature(yk SecurityKey, opts *VerifyOpts) error {
+func VerifySignature(yk Pivit, opts *VerifyOpts) error {
 	EmitNewSign()
 
 	buf := new(bytes.Buffer)
@@ -64,7 +64,7 @@ func VerifySignature(yk SecurityKey, opts *VerifyOpts) error {
 	return verifyAttached(yk, sd, opts.Slot)
 }
 
-func verifyAttached(yk SecurityKey, sd *cms.SignedData, slot piv.Slot) error {
+func verifyAttached(yk Pivit, sd *cms.SignedData, slot piv.Slot) error {
 	chains, err := sd.Verify(verifyOpts(yk, slot))
 	if err != nil {
 		if len(chains) > 0 {
@@ -94,7 +94,7 @@ func verifyAttached(yk SecurityKey, sd *cms.SignedData, slot piv.Slot) error {
 	return nil
 }
 
-func verifyDetached(yk SecurityKey, sd *cms.SignedData, data io.Reader, slot piv.Slot) error {
+func verifyDetached(yk Pivit, sd *cms.SignedData, data io.Reader, slot piv.Slot) error {
 	buf := new(bytes.Buffer)
 	if _, err := io.Copy(buf, data); err != nil {
 		return errors.Wrap(err, "read message file")
@@ -129,7 +129,7 @@ func verifyDetached(yk SecurityKey, sd *cms.SignedData, data io.Reader, slot piv
 	return nil
 }
 
-func verifyOpts(yk SecurityKey, slot piv.Slot) x509.VerifyOptions {
+func verifyOpts(yk Pivit, slot piv.Slot) x509.VerifyOptions {
 	roots, err := x509.SystemCertPool()
 	if err != nil {
 		// SystemCertPool isn't implemented for Windows. fall back to mozilla trust store

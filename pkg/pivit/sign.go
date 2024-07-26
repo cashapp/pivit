@@ -35,7 +35,7 @@ type SignOpts struct {
 const signedMessagePemHeader = "SIGNED MESSAGE"
 
 // Sign creates a digital signature from the given data in SignOpts.Message
-func Sign(yk SecurityKey, opts *SignOpts) error {
+func Sign(yk Pivit, opts *SignOpts) error {
 	cert, err := yk.Certificate(opts.Slot)
 	if err != nil {
 		return errors.Wrap(err, "get identity certificate")
@@ -45,9 +45,7 @@ func Sign(yk SecurityKey, opts *SignOpts) error {
 		return errors.Wrap(err, "no suitable certificate found")
 	}
 
-	yubikeySigner := NewYubikeySigner(yk, opts.Slot)
 	SetupStatus(opts.StatusFd)
-
 	dataBuf := new(bytes.Buffer)
 	if _, err = io.Copy(dataBuf, opts.Message); err != nil {
 		return errors.Wrap(err, "read message to sign")
@@ -58,6 +56,7 @@ func Sign(yk SecurityKey, opts *SignOpts) error {
 		return errors.Wrap(err, "create signed data")
 	}
 
+	yubikeySigner := NewYubikeySigner(yk, opts.Slot)
 	if err = sd.Sign([]*x509.Certificate{cert}, yubikeySigner); err != nil {
 		return errors.Wrap(err, "sign message")
 	}

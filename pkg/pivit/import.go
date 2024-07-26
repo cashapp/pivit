@@ -20,7 +20,7 @@ type ImportOpts struct {
 }
 
 // ImportCertificate stores a certificate file in a yubikey PIV slot
-func ImportCertificate(yk SecurityKey, opts *ImportOpts) error {
+func ImportCertificate(yk Pivit, opts *ImportOpts) error {
 	certBytes, err := os.ReadFile(opts.Filename)
 	if err != nil {
 		return errors.Wrap(err, "read certificate file")
@@ -58,7 +58,7 @@ func ImportCertificate(yk SecurityKey, opts *ImportOpts) error {
 	return importCert(cert, yk, managementKey, opts.Slot)
 }
 
-func importCert(cert *x509.Certificate, yk SecurityKey, managementKey *[24]byte, slot piv.Slot) error {
+func importCert(cert *x509.Certificate, yk Pivit, managementKey *[24]byte, slot piv.Slot) error {
 	err := yk.SetCertificate(*managementKey, slot, cert)
 	if err != nil {
 		return errors.Wrap(err, "set certificate")

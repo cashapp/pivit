@@ -10,7 +10,7 @@ import (
 )
 
 // ResetYubikey resets the yubikey, sets a new pin, and sets a random PIN unblock key
-func ResetYubikey(yk SecurityKey) error {
+func ResetYubikey(yk Pivit) error {
 	if err := yk.Reset(); err != nil {
 		return errors.Wrap(err, "reset PIV applet")
 	}

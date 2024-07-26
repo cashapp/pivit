@@ -4,12 +4,13 @@ import (
 	"crypto"
 	"crypto/x509"
 	"fmt"
+	"io"
+
 	"github.com/go-piv/piv-go/piv"
 	"github.com/pkg/errors"
-	"io"
 )
 
-type SecurityKey interface {
+type Pivit interface {
 	Close() error
 	AttestationCertificate() (*x509.Certificate, error)
 	Attest(slot piv.Slot) (*x509.Certificate, error)
@@ -26,7 +27,7 @@ type SecurityKey interface {
 	Version() piv.Version
 }
 
-var _ SecurityKey = (*piv.YubiKey)(nil)
+var _ Pivit = (*piv.YubiKey)(nil)
 
 // YubikeyHandle returns a handle to the first piv.YubiKey found in the system
 func YubikeyHandle() (*piv.YubiKey, error) {
@@ -45,14 +46,14 @@ func YubikeyHandle() (*piv.YubiKey, error) {
 
 // signer implements crypto.Signer using a yubikey
 type signer struct {
-	yk SecurityKey
+	yk Pivit
 	s  piv.Slot
 }
 
 var _ crypto.Signer = (*signer)(nil)
 
 // NewYubikeySigner returns a signer
-func NewYubikeySigner(yk SecurityKey, s piv.Slot) crypto.Signer {
+func NewYubikeySigner(yk Pivit, s piv.Slot) crypto.Signer {
 	return signer{yk: yk, s: s}
 }
 

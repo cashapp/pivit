@@ -21,7 +21,7 @@ func CertHexFingerprint(certificate *x509.Certificate) string {
 	return fingerprintString
 }
 
-// GetPin returns the SecurityKey PIN entered in stdin
+// GetPin prompts the user for a PIN and returns what the user entered in stdin as a string
 func GetPin() (string, error) {
 	validatePin := func(input string) error {
 		if len(input) < 6 || len(input) > 8 {
@@ -96,7 +96,7 @@ func deriveManagementKey(pin string) *[24]byte {
 //  2. set it as the new management key
 //  3. store it in the PIV metadata section
 //  4. return the newly set management key
-func GetOrSetManagementKey(yk SecurityKey, pin string) (*[24]byte, error) {
+func GetOrSetManagementKey(yk Pivit, pin string) (*[24]byte, error) {
 	var newManagementKey *[24]byte
 	metadata, err := yk.Metadata(pin)
 	if err != nil {

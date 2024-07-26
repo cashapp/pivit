@@ -15,7 +15,7 @@ type PrintCertificateOpts struct {
 }
 
 // PrintCertificate exports the certificate.
-func PrintCertificate(yk SecurityKey, opts *PrintCertificateOpts) error {
+func PrintCertificate(yk Pivit, opts *PrintCertificateOpts) error {
 	cert, err := yk.Certificate(opts.Slot)
 	if err != nil {
 		return errors.Wrap(err, "get PIV certificate")
