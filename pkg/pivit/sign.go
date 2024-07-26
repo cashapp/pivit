@@ -8,9 +8,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/cashapp/pivit/pkg/pivit/status"
-	"github.com/cashapp/pivit/pkg/pivit/utils"
-	"github.com/cashapp/pivit/pkg/pivit/yubikey"
+	"github.com/go-piv/piv-go/piv"
+
 	cms "github.com/github/smimesign/ietf-cms"
 	"github.com/pkg/errors"
 )
@@ -29,19 +28,15 @@ type SignOpts struct {
 	TimestampAuthority string
 	// Message to sign
 	Message io.Reader
+	// Slot containing key for signing
+	Slot piv.Slot
 }
 
 const signedMessagePemHeader = "SIGNED MESSAGE"
 
 // Sign creates a digital signature from the given data in SignOpts.Message
-func Sign(slot string, opts *SignOpts) error {
-	yk, err := yubikey.GetSigner(slot)
-	if err != nil {
-		return errors.Wrap(err, "open PIV for signing")
-	}
-
-	pivSlot := utils.GetSlot(slot)
-	cert, err := yk.Certificate(pivSlot)
+func Sign(yk Pivit, opts *SignOpts) error {
+	cert, err := yk.Certificate(opts.Slot)
 	if err != nil {
 		return errors.Wrap(err, "get identity certificate")
 	}
@@ -50,9 +45,7 @@ func Sign(slot string, opts *SignOpts) error {
 		return errors.Wrap(err, "no suitable certificate found")
 	}
 
-	yubikeySigner := yubikey.NewYubikeySigner(yk, pivSlot)
-	status.SetupStatus(opts.StatusFd)
-
+	SetupStatus(opts.StatusFd)
 	dataBuf := new(bytes.Buffer)
 	if _, err = io.Copy(dataBuf, opts.Message); err != nil {
 		return errors.Wrap(err, "read message to sign")
@@ -63,13 +56,14 @@ func Sign(slot string, opts *SignOpts) error {
 		return errors.Wrap(err, "create signed data")
 	}
 
+	yubikeySigner := NewYubikeySigner(yk, opts.Slot)
 	if err = sd.Sign([]*x509.Certificate{cert}, yubikeySigner); err != nil {
 		return errors.Wrap(err, "sign message")
 	}
 	// Git is looking for "\n[GNUPG:] SIG_CREATED ", meaning we need to print a
 	// line before SIG_CREATED. BEGIN_SIGNING seems appropriate. GPG emits this,
 	// though GPGSM does not.
-	status.EmitBeginSigning()
+	EmitBeginSigning()
 	if opts.Detach {
 		sd.Detached()
 	}
@@ -90,7 +84,7 @@ func Sign(slot string, opts *SignOpts) error {
 		return errors.Wrap(err, "serialize signature")
 	}
 
-	status.EmitSigCreated(cert, opts.Detach)
+	EmitSigCreated(cert, opts.Detach)
 	if opts.Armor {
 		err = pem.Encode(os.Stdout, &pem.Block{
 			Type:  signedMessagePemHeader,
@@ -110,7 +104,7 @@ func certificateContainsUserId(cert *x509.Certificate, userId string) error {
 	email, err := normalizeEmail(userId)
 	if err != nil {
 		fingerprint := normalizeFingerprint(userId)
-		if !strings.EqualFold(utils.CertHexFingerprint(cert), fingerprint) {
+		if !strings.EqualFold(CertHexFingerprint(cert), fingerprint) {
 			return errors.Errorf("no certificate found with fingerprint %s", fingerprint)
 		}
 	} else {

@@ -1,8 +1,9 @@
-package utils
+package pivit
 
 import (
 	"crypto/x509"
 	"encoding/pem"
+	"github.com/go-piv/piv-go/piv"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -92,7 +93,40 @@ DklnGaJUyq5Mp98Gam51m9i4616VmkODloxROWIeHUZbQ8XwWBsaRMf7rdu/RsSo
 	if err != nil {
 		t.Fatal(err)
 	}
-	expected_fingerprint := "0b280e1bfffcc81bafd74e50f3ee7559bbd54624"
+	expectedFingerprint := "0b280e1bfffcc81bafd74e50f3ee7559bbd54624"
 	fingerprint := CertHexFingerprint(cert)
-	assert.Equal(t, expected_fingerprint, fingerprint)
+	assert.Equal(t, expectedFingerprint, fingerprint)
+}
+
+func TestGetSlot(t *testing.T) {
+	testCases := []struct {
+		name string
+		slot piv.Slot
+	}{
+		{piv.SlotCardAuthentication.String(), piv.SlotCardAuthentication},
+		{piv.SlotSignature.String(), piv.SlotSignature},
+		{piv.SlotKeyManagement.String(), piv.SlotKeyManagement},
+		{piv.SlotAuthentication.String(), piv.SlotAuthentication},
+		{"anything else", piv.SlotCardAuthentication},
+	}
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			slot := GetSlot(testCase.name)
+			assert.Equal(t, slot, testCase.slot)
+		})
+	}
+}
+
+func TestRandomManagementKey(t *testing.T) {
+	key1, err := RandomManagementKey()
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.Len(t, key1, 24)
+
+	key2, err := RandomManagementKey()
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.NotEqual(t, key1, key2)
 }

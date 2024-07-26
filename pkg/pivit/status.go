@@ -1,4 +1,4 @@
-package status
+package pivit
 
 import (
 	"crypto"
@@ -8,7 +8,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cashapp/pivit/pkg/pivit/utils"
 	"golang.org/x/crypto/openpgp/packet"
 	"golang.org/x/crypto/openpgp/s2k"
 )
@@ -200,7 +199,7 @@ func EmitSigCreated(cert *x509.Certificate, isDetached bool) {
 	// gpgsm seems to always use 0x00
 	sigClass = 0
 	now = time.Now().Unix()
-	fpr = utils.CertHexFingerprint(cert)
+	fpr = CertHexFingerprint(cert)
 
 	sSigCreated.emitf("%s %d %d %02x %d %s", sigType, pkAlgo, hashAlgo, sigClass, now, fpr)
 }
@@ -209,7 +208,7 @@ func EmitSigCreated(cert *x509.Certificate, isDetached bool) {
 func EmitGoodSig(chains [][][]*x509.Certificate) {
 	cert := chains[0][0][0]
 	subj := cert.Subject.String()
-	fpr := utils.CertHexFingerprint(cert)
+	fpr := CertHexFingerprint(cert)
 
 	sGoodSig.emitf("%s %s", fpr, subj)
 }
@@ -218,7 +217,7 @@ func EmitGoodSig(chains [][][]*x509.Certificate) {
 func EmitBadSig(chains [][][]*x509.Certificate) {
 	cert := chains[0][0][0]
 	subj := cert.Subject.String
-	fpr := utils.CertHexFingerprint(cert)
+	fpr := CertHexFingerprint(cert)
 
 	sBadSig.emitf("%s %s", fpr, subj)
 }

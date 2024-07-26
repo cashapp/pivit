@@ -1,4 +1,4 @@
-package utils
+package pivit
 
 import (
 	"crypto"
@@ -21,7 +21,7 @@ func CertHexFingerprint(certificate *x509.Certificate) string {
 	return fingerprintString
 }
 
-// GetPin returns the Yubikey PIN entered in stdin
+// GetPin prompts the user for a PIN and returns what the user entered in stdin as a string
 func GetPin() (string, error) {
 	validatePin := func(input string) error {
 		if len(input) < 6 || len(input) > 8 {
@@ -43,7 +43,7 @@ func GetPin() (string, error) {
 	return newPin, nil
 }
 
-func Confirm(label string) (bool, error) {
+func confirm(label string) (bool, error) {
 	prompt := promptui.Prompt{
 		Label:     label,
 		IsConfirm: true,
@@ -53,7 +53,7 @@ func Confirm(label string) (bool, error) {
 	return strings.ToLower(result) == "y", err
 }
 
-// GetSlot returns a piv.Slot slot. Defaults to 9e
+// GetSlot returns a piv.Slot. Defaults to 9e
 func GetSlot(slot string) piv.Slot {
 	switch slot {
 	case piv.SlotCardAuthentication.String():
@@ -78,8 +78,11 @@ func RandomManagementKey() (*[24]byte, error) {
 	return (*[24]byte)(mk), nil
 }
 
-// DeriveManagementKey returns the first 24 bytes of the SHA256 checksum of the given pin
-func DeriveManagementKey(pin string) *[24]byte {
+// deriveManagementKey returns the first 24 bytes of the SHA256 checksum of the given pin
+// NOTE: this function has an error in it and SHOULD NOT BE USED.
+// It'll return the same checksum every time it's being called.
+// Its only use case should be in the GetOrSetManagementKey function for legacy reasons.
+func deriveManagementKey(pin string) *[24]byte {
 	hash := crypto.SHA256.New()
 	checksum := hash.Sum([]byte(pin))
 	var mk [24]byte
@@ -93,14 +96,14 @@ func DeriveManagementKey(pin string) *[24]byte {
 //  2. set it as the new management key
 //  3. store it in the PIV metadata section
 //  4. return the newly set management key
-func GetOrSetManagementKey(yk *piv.YubiKey, pin string) (*[24]byte, error) {
+func GetOrSetManagementKey(yk Pivit, pin string) (*[24]byte, error) {
 	var newManagementKey *[24]byte
 	metadata, err := yk.Metadata(pin)
 	if err != nil {
 		return nil, err
 	}
 	if metadata.ManagementKey == nil {
-		oldManagementKey := DeriveManagementKey(pin)
+		oldManagementKey := deriveManagementKey(pin)
 		randomManagementKey, err := RandomManagementKey()
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to generate random management key")

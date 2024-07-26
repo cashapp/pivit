@@ -8,9 +8,8 @@ import (
 	"io"
 	"os"
 
-	"github.com/cashapp/pivit/pkg/pivit/status"
-	"github.com/cashapp/pivit/pkg/pivit/utils"
-	"github.com/cashapp/pivit/pkg/pivit/yubikey"
+	"github.com/go-piv/piv-go/piv"
+
 	"github.com/certifi/gocertifi"
 	cms "github.com/github/smimesign/ietf-cms"
 	"github.com/pkg/errors"
@@ -23,12 +22,14 @@ type VerifyOpts struct {
 	// Message associated with the signature.
 	// This option is only used when verifying a detached signature
 	Message io.Reader
+	// Slot containing certificate to verify with
+	Slot piv.Slot
 }
 
 // VerifySignature verifies digital signatures.
 // If the given signature is detached, then read the message associated with the signature form VerifyOpts.Message
-func VerifySignature(slot string, opts *VerifyOpts) error {
-	status.EmitNewSign()
+func VerifySignature(yk Pivit, opts *VerifyOpts) error {
+	EmitNewSign()
 
 	buf := new(bytes.Buffer)
 	if _, err := io.Copy(buf, opts.Signature); err != nil {
@@ -54,23 +55,23 @@ func VerifySignature(slot string, opts *VerifyOpts) error {
 		if opts.Message == nil {
 			return errors.New("expected detached signature, but message wasn't provided")
 		}
-		return verifyDetached(sd, opts.Message, slot)
+		return verifyDetached(yk, sd, opts.Message, opts.Slot)
 	}
 
 	if opts.Message != nil {
 		return errors.New("expected to verify attached signature, but still got a message reader")
 	}
-	return verifyAttached(sd, slot)
+	return verifyAttached(yk, sd, opts.Slot)
 }
 
-func verifyAttached(sd *cms.SignedData, slot string) error {
-	chains, err := sd.Verify(verifyOpts(slot))
+func verifyAttached(yk Pivit, sd *cms.SignedData, slot piv.Slot) error {
+	chains, err := sd.Verify(verifyOpts(yk, slot))
 	if err != nil {
 		if len(chains) > 0 {
-			status.EmitBadSig(chains)
+			EmitBadSig(chains)
 		} else {
 			// TODO: We're omitting a bunch of arguments here.
-			status.EmitErrSig()
+			EmitErrSig()
 		}
 
 		return errors.Wrap(err, "verify signature")
@@ -78,34 +79,34 @@ func verifyAttached(sd *cms.SignedData, slot string) error {
 
 	var (
 		cert = chains[0][0][0]
-		fpr  = utils.CertHexFingerprint(cert)
+		fpr  = CertHexFingerprint(cert)
 		subj = cert.Subject.String()
 	)
 
 	_, _ = fmt.Fprintf(os.Stderr, "pivit: Signature made using certificate ID 0x%s\n", fpr)
-	status.EmitGoodSig(chains)
+	EmitGoodSig(chains)
 
 	// TODO: Maybe split up signature checking and certificate checking so we can
 	// output something more meaningful.
 	_, _ = fmt.Fprintf(os.Stderr, "pivit: Good signature from \"%s\"\n", subj)
-	status.EmitTrustFully()
+	EmitTrustFully()
 
 	return nil
 }
 
-func verifyDetached(sd *cms.SignedData, data io.Reader, slot string) error {
+func verifyDetached(yk Pivit, sd *cms.SignedData, data io.Reader, slot piv.Slot) error {
 	buf := new(bytes.Buffer)
 	if _, err := io.Copy(buf, data); err != nil {
 		return errors.Wrap(err, "read message file")
 	}
 
-	chains, err := sd.VerifyDetached(buf.Bytes(), verifyOpts(slot))
+	chains, err := sd.VerifyDetached(buf.Bytes(), verifyOpts(yk, slot))
 	if err != nil {
 		if len(chains) > 0 {
-			status.EmitBadSig(chains)
+			EmitBadSig(chains)
 		} else {
 			// TODO: We're omitting a bunch of arguments here.
-			status.EmitErrSig()
+			EmitErrSig()
 		}
 
 		return errors.Wrap(err, "failed to verify signature")
@@ -113,22 +114,22 @@ func verifyDetached(sd *cms.SignedData, data io.Reader, slot string) error {
 
 	var (
 		cert = chains[0][0][0]
-		fpr  = utils.CertHexFingerprint(cert)
+		fpr  = CertHexFingerprint(cert)
 		subj = cert.Subject.String()
 	)
 
 	_, _ = fmt.Fprintf(os.Stderr, "pivit: Signature made using certificate ID 0x%s\n", fpr)
-	status.EmitGoodSig(chains)
+	EmitGoodSig(chains)
 
 	// TODO: Maybe split up signature checking and certificate checking so we can
 	// output something more meaningful.
 	_, _ = fmt.Fprintf(os.Stderr, "pivit: Good signature from \"%s\"\n", subj)
-	status.EmitTrustFully()
+	EmitTrustFully()
 
 	return nil
 }
 
-func verifyOpts(slot string) x509.VerifyOptions {
+func verifyOpts(yk Pivit, slot piv.Slot) x509.VerifyOptions {
 	roots, err := x509.SystemCertPool()
 	if err != nil {
 		// SystemCertPool isn't implemented for Windows. fall back to mozilla trust store
@@ -140,14 +141,9 @@ func verifyOpts(slot string) x509.VerifyOptions {
 		}
 	}
 
-	yk, err := yubikey.GetSigner(slot)
-
+	cert, err := yk.Certificate(slot)
 	if err == nil {
-		cert, err := yk.Certificate(utils.GetSlot(slot))
-		if err == nil {
-			roots.AddCert(cert)
-		}
-		_ = yk.Close()
+		roots.AddCert(cert)
 	}
 
 	return x509.VerifyOptions{

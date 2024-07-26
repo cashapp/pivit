@@ -5,8 +5,6 @@ import (
 	"encoding/pem"
 	"os"
 
-	"github.com/cashapp/pivit/pkg/pivit/utils"
-	"github.com/cashapp/pivit/pkg/pivit/yubikey"
 	"github.com/go-piv/piv-go/piv"
 	"github.com/pkg/errors"
 )
@@ -17,10 +15,12 @@ type ImportOpts struct {
 	Filename string
 	// StopAfterFirst if false and Filename contains more data after the first PEM block, then return an error
 	StopAfterFirst bool
+	// Slot to store the certificate in
+	Slot piv.Slot
 }
 
 // ImportCertificate stores a certificate file in a yubikey PIV slot
-func ImportCertificate(slot string, opts *ImportOpts) error {
+func ImportCertificate(yk Pivit, opts *ImportOpts) error {
 	certBytes, err := os.ReadFile(opts.Filename)
 	if err != nil {
 		return errors.Wrap(err, "read certificate file")
@@ -36,28 +36,30 @@ func ImportCertificate(slot string, opts *ImportOpts) error {
 		return errors.Wrap(err, "parse certificate")
 	}
 
-	yk, err := yubikey.GetSigner(slot)
+	// the presence of a certificate indicates that the slot contains a private key
+	// we don't want to import a certificate for a slot that doesn't contain a private key
+	certificate, err := yk.Certificate(opts.Slot)
 	if err != nil {
-		return errors.Wrap(err, "enumerate smart cards")
+		return errors.Wrap(err, "failed to get certificate")
 	}
-	defer func() {
-		_ = yk.Close()
-	}()
+	if certificate == nil {
+		return errors.New("certificate not found")
+	}
 
-	pin, err := utils.GetPin()
+	pin, err := GetPin()
 	if err != nil {
 		return errors.Wrap(err, "get pin")
 	}
 
-	managementKey, err := utils.GetOrSetManagementKey(yk, pin)
+	managementKey, err := GetOrSetManagementKey(yk, pin)
 	if err != nil {
 		return errors.Wrap(err, "failed to use management key")
 	}
-	return importCert(cert, yk, managementKey, slot)
+	return importCert(cert, yk, managementKey, opts.Slot)
 }
 
-func importCert(cert *x509.Certificate, yk *piv.YubiKey, managementKey *[24]byte, slot string) error {
-	err := yk.SetCertificate(*managementKey, utils.GetSlot(slot), cert)
+func importCert(cert *x509.Certificate, yk Pivit, managementKey *[24]byte, slot piv.Slot) error {
+	err := yk.SetCertificate(*managementKey, slot, cert)
 	if err != nil {
 		return errors.Wrap(err, "set certificate")
 	}
