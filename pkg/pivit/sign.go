@@ -30,6 +30,8 @@ type SignOpts struct {
 	Message io.Reader
 	// Slot containing key for signing
 	Slot piv.Slot
+	// Prompt where to get the pin from
+	Prompt io.ReadCloser
 }
 
 const signedMessagePemHeader = "SIGNED MESSAGE"
@@ -56,7 +58,7 @@ func Sign(yk Pivit, opts *SignOpts) error {
 		return errors.Wrap(err, "create signed data")
 	}
 
-	yubikeySigner := NewYubikeySigner(yk, opts.Slot)
+	yubikeySigner := NewYubikeySigner(yk, opts.Slot, opts.Prompt)
 	if err = sd.Sign([]*x509.Certificate{cert}, yubikeySigner); err != nil {
 		return errors.Wrap(err, "sign message")
 	}

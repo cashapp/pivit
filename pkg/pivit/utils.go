@@ -7,6 +7,7 @@ import (
 	"crypto/x509"
 	"encoding/hex"
 	"fmt"
+	"io"
 	"strings"
 
 	"github.com/go-piv/piv-go/piv"
@@ -22,7 +23,7 @@ func CertHexFingerprint(certificate *x509.Certificate) string {
 }
 
 // GetPin prompts the user for a PIN and returns what the user entered in stdin as a string
-func GetPin() (string, error) {
+func GetPin(reader io.ReadCloser) (string, error) {
 	validatePin := func(input string) error {
 		if len(input) < 6 || len(input) > 8 {
 			return fmt.Errorf("PIN must be 6-8 digits long")
@@ -34,6 +35,7 @@ func GetPin() (string, error) {
 		Label:    "PIN",
 		Validate: validatePin,
 		Mask:     '*',
+		Stdin:    reader,
 	}
 
 	newPin, err := prompt.Run()
@@ -43,13 +45,16 @@ func GetPin() (string, error) {
 	return newPin, nil
 }
 
-func confirm(label string) (bool, error) {
+func confirm(label string, stdin io.ReadCloser) (bool, error) {
 	prompt := promptui.Prompt{
 		Label:     label,
 		IsConfirm: true,
+		Stdin:     stdin,
 	}
 	result, err := prompt.Run()
-
+	if errors.Is(err, promptui.ErrAbort) {
+		return false, nil
+	}
 	return strings.ToLower(result) == "y", err
 }
 

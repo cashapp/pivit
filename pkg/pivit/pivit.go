@@ -46,22 +46,27 @@ func YubikeyHandle() (*piv.YubiKey, error) {
 
 // signer implements crypto.Signer using a yubikey
 type signer struct {
-	yk Pivit
-	s  piv.Slot
+	yk    Pivit
+	s     piv.Slot
+	stdin io.ReadCloser
 }
 
 var _ crypto.Signer = (*signer)(nil)
 
 // NewYubikeySigner returns a signer
-func NewYubikeySigner(yk Pivit, s piv.Slot) crypto.Signer {
-	return signer{yk: yk, s: s}
+func NewYubikeySigner(yk Pivit, s piv.Slot, stdin io.ReadCloser) crypto.Signer {
+	return signer{
+		yk:    yk,
+		s:     s,
+		stdin: stdin,
+	}
 }
 
 // Sign implements crypto.Signer
 func (y signer) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts) ([]byte, error) {
 	auth := piv.KeyAuth{
 		PINPrompt: func() (string, error) {
-			pin, err := GetPin()
+			pin, err := GetPin(y.stdin)
 			if err != nil {
 				return "", errors.Wrap(err, "get pin")
 			}
@@ -122,3 +127,5 @@ func (y signer) getPINPolicy() (*piv.PINPolicy, error) {
 	}
 	return &attestation.PINPolicy, nil
 }
+
+var verify = piv.Verify

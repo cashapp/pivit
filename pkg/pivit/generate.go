@@ -7,6 +7,7 @@ import (
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"fmt"
+	"io"
 	"math/big"
 	"net"
 	"net/url"
@@ -35,14 +36,19 @@ type GenerateCertificateOpts struct {
 	TouchPolicy piv.TouchPolicy
 	// Slot to use for the private key
 	Slot piv.Slot
+	// Prompt where to get the pin from
+	Prompt io.ReadCloser
 }
 
 // GenerateCertificate generates a new key pair and a certificate associated with it.
 // By default, the certificate is signed by Yubico.
 // See the GenerateCertificateOpts.GenerateCsr and GenerateCertificateOpts.SelfSign for other options.
 func GenerateCertificate(yk Pivit, opts *GenerateCertificateOpts) error {
+	if opts.GenerateCsr && opts.SelfSign {
+		return errors.New("can't generate a self signed certificate and CSR at the same time")
+	}
 	if opts.SelfSign && !opts.AssumeYes {
-		ok, err := confirm("Are you sure you wish to generate a self-signed certificate?")
+		ok, err := confirm("Are you sure you wish to generate a self-signed certificate?", opts.Prompt)
 		if err != nil {
 			return err
 		}
@@ -51,7 +57,7 @@ func GenerateCertificate(yk Pivit, opts *GenerateCertificateOpts) error {
 		}
 	}
 
-	pin, err := GetPin()
+	pin, err := GetPin(opts.Prompt)
 	if err != nil {
 		return errors.Wrap(err, "get pin")
 	}
@@ -97,7 +103,7 @@ func GenerateCertificate(yk Pivit, opts *GenerateCertificateOpts) error {
 	if err != nil {
 		return errors.Wrap(err, "access private key")
 	}
-	attestation, err := piv.Verify(deviceCert, keyCert)
+	attestation, err := verify(deviceCert, keyCert)
 	if err != nil {
 		return errors.Wrap(err, "verify device certificate")
 	}

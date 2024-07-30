@@ -165,7 +165,8 @@ func runCommand() error {
 		if *signFlag || *verifyFlag || *generateFlag || importFlag || *printFlag {
 			return errors.New("specify --help, --sign, --verify, --import, --generate, --reset or --print")
 		}
-		return pivit.ResetYubikey(yk)
+		opts := &pivit.ResetOpts{Prompt: os.Stdin}
+		return pivit.ResetYubikey(yk, opts)
 	}
 
 	if *generateFlag {
@@ -177,9 +178,6 @@ func runCommand() error {
 			algorithm = piv.AlgorithmEC256
 		} else {
 			algorithm = piv.AlgorithmEC384
-		}
-		if *selfSignFlag && *noCsrFlag {
-			return errors.New("can't specify both --self-sign and --no-csr")
 		}
 		generateCsr := true
 		if *noCsrFlag {
@@ -215,6 +213,7 @@ func runCommand() error {
 			PINPolicy:   pinPolicy,
 			TouchPolicy: touchPolicy,
 			Slot:        pivit.GetSlot(*slot),
+			Prompt:      os.Stdin,
 		}
 		return pivit.GenerateCertificate(yk, opts)
 	}
@@ -228,6 +227,7 @@ func runCommand() error {
 			Filename:       *importOpt,
 			StopAfterFirst: *firstOpt,
 			Slot:           pivit.GetSlot(*slot),
+			Prompt:         os.Stdin,
 		}
 		return pivit.ImportCertificate(yk, opts)
 	}
