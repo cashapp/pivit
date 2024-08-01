@@ -3,9 +3,10 @@ package pivit
 import (
 	"crypto/x509"
 	"encoding/pem"
+	"testing"
+
 	"github.com/go-piv/piv-go/piv"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestCertHexFingerprint(t *testing.T) {
@@ -129,4 +130,21 @@ func TestRandomManagementKey(t *testing.T) {
 		t.Fatal(err)
 	}
 	assert.NotEqual(t, key1, key2)
+}
+
+func TestGetOrSetManagementKey(t *testing.T) {
+	yk, err := testYubikey()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	badManagementKey := deriveManagementKey("123456")
+	err = yk.SetManagementKey(piv.DefaultManagementKey, *badManagementKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	newManagementKey, err := GetOrSetManagementKey(yk, "123456")
+	assert.NoError(t, err)
+	assert.NotEqual(t, badManagementKey, newManagementKey)
 }

@@ -100,3 +100,18 @@ func TestGenerateCertificate_generateCsr(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotEmpty(t, yk.slots[piv.SlotCardAuthentication])
 }
+
+func TestGenerateCertificate_badFlags(t *testing.T) {
+	opts := &GenerateCertificateOpts{
+		Algorithm:   piv.AlgorithmEC256,
+		SelfSign:    true,
+		GenerateCsr: true,
+		AssumeYes:   false,
+		PINPolicy:   piv.PINPolicyNever,
+		TouchPolicy: piv.TouchPolicyAlways,
+		Slot:        piv.SlotCardAuthentication,
+		Prompt:      nil,
+	}
+	err := GenerateCertificate(nil, opts)
+	assert.Error(t, err)
+}
