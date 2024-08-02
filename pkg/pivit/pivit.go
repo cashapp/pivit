@@ -2,6 +2,7 @@ package pivit
 
 import (
 	"crypto"
+	"crypto/ecdsa"
 	"crypto/x509"
 	"fmt"
 	"io"
@@ -92,8 +93,8 @@ func (y signer) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts) ([]b
 	}
 
 	switch private.(type) {
-	case *piv.ECDSAPrivateKey:
-		return private.(*piv.ECDSAPrivateKey).Sign(rand, digest, opts)
+	case *ecdsa.PrivateKey:
+		return private.(*ecdsa.PrivateKey).Sign(rand, digest, opts)
 	default:
 		return nil, fmt.Errorf("invalid key type")
 	}

@@ -186,7 +186,7 @@ func (f *fakeYubikey) PrivateKey(slot piv.Slot, publicKey crypto.PublicKey, _ pi
 		if !ok {
 			return nil, errors.New("wrong key type")
 		}
-		if &priv.PublicKey != ecdsaPub {
+		if !ecdsaPub.Equal(priv.Public()) {
 			return nil, errors.New("wrong public key")
 		}
 	case ed25519.PrivateKey:
