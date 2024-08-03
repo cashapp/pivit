@@ -2,6 +2,7 @@ package pivit
 
 import (
 	"bytes"
+	"os"
 	"testing"
 
 	"github.com/go-piv/piv-go/piv"
@@ -45,65 +46,44 @@ func TestSign(t *testing.T) {
 		timestampUrl string
 		slot         piv.Slot
 		expectError  bool
+		skipCI       bool
 	}{
 		{
-			description:  "no certificate found",
-			armor:        false,
-			detach:       false,
-			userId:       "",
-			timestampUrl: "",
-			slot:         piv.SlotSignature,
-			expectError:  true,
+			description: "no certificate found",
+			slot:        piv.SlotSignature,
+			expectError: true,
 		},
 		{
-			description:  "bad fingerprint",
-			armor:        false,
-			detach:       false,
-			userId:       "",
-			timestampUrl: "",
-			slot:         piv.SlotCardAuthentication,
-			expectError:  true,
+			description: "bad fingerprint",
+			slot:        piv.SlotCardAuthentication,
+			expectError: true,
 		},
 		{
-			description:  "default options",
-			armor:        false,
-			detach:       false,
-			userId:       fingerprint,
-			timestampUrl: "",
-			slot:         piv.SlotCardAuthentication,
-			expectError:  false,
+			description: "default options",
+			userId:      fingerprint,
+			slot:        piv.SlotCardAuthentication,
 		},
 		{
-			description:  "with armor",
-			armor:        true,
-			detach:       false,
-			userId:       fingerprint,
-			timestampUrl: "",
-			slot:         piv.SlotCardAuthentication,
-			expectError:  false,
+			description: "with armor",
+			armor:       true,
+			userId:      fingerprint,
+			slot:        piv.SlotCardAuthentication,
 		},
 		{
-			description:  "detached signature",
-			armor:        false,
-			detach:       true,
-			userId:       fingerprint,
-			timestampUrl: "",
-			slot:         piv.SlotCardAuthentication,
-			expectError:  false,
+			description: "detached signature",
+			detach:      true,
+			userId:      fingerprint,
+			slot:        piv.SlotCardAuthentication,
 		},
 		{
 			description:  "with timestamp server",
-			armor:        false,
-			detach:       false,
 			userId:       fingerprint,
 			timestampUrl: "http://timestamp.digicert.com",
 			slot:         piv.SlotCardAuthentication,
-			expectError:  false,
+			skipCI:       true,
 		},
 		{
 			description:  "bad timestamp server",
-			armor:        false,
-			detach:       false,
 			userId:       fingerprint,
 			timestampUrl: "http://127.0.0.1",
 			slot:         piv.SlotCardAuthentication,
@@ -112,6 +92,10 @@ func TestSign(t *testing.T) {
 	}
 	for _, test := range testCases {
 		t.Run(test.description, func(t *testing.T) {
+			if test.skipCI {
+				skipCI(t)
+			}
+
 			signOpts := &SignOpts{
 				StatusFd:           0,
 				Detach:             test.detach,
@@ -129,5 +113,13 @@ func TestSign(t *testing.T) {
 				assert.NoError(t, err)
 			}
 		})
+	}
+}
+
+// skipCI skips a test if we can determine the environment we're running in is a NixOS sandbox
+// it's used to skip tests that use networking for example
+func skipCI(t *testing.T) {
+	if os.Getenv("NIX_ENFORCE_PURITY") != "" {
+		t.Skip("Skipping test in CI environment")
 	}
 }
