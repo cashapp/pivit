@@ -40,73 +40,91 @@ type GenerateCertificateOpts struct {
 	Prompt io.ReadCloser
 }
 
+type GenerateCertificateResults struct {
+	// AttestationCertificate PEM encoded X509 certificate that identifies the specific Yubikey device.
+	// This certificate is signed by Yubico Inc.'s CA.
+	AttestationCertificate []byte
+	// Certificate PEM encoded certificate corresponding to the key that was generated.
+	// If GenerateCertificateOpts.SelfSign is specified, this certificate is self-signed.
+	// Otherwise, it's signed by AttestationCertificate
+	Certificate []byte
+	// CertificateSigningRequest PEM encoded Certificate Signing Request (CSR) for the generated key.
+	CertificateSigningRequest []byte
+}
+
 // GenerateCertificate generates a new key pair and a certificate associated with it.
 // By default, the certificate is signed by Yubico.
 // See the GenerateCertificateOpts.GenerateCsr and GenerateCertificateOpts.SelfSign for other options.
-func GenerateCertificate(yk Pivit, opts *GenerateCertificateOpts) error {
+func GenerateCertificate(yk Pivit, opts *GenerateCertificateOpts) (*GenerateCertificateResults, error) {
 	if opts.GenerateCsr && opts.SelfSign {
-		return errors.New("can't generate a self signed certificate and CSR at the same time")
+		return nil, errors.New("can't generate a self signed certificate and CSR at the same time")
 	}
 	if opts.SelfSign && !opts.AssumeYes {
 		ok, err := confirm("Are you sure you wish to generate a self-signed certificate?", opts.Prompt)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		if !ok {
-			return nil
+			return nil, nil
 		}
 	}
 
+	// populate the device (attestation) certificate
+	result := &GenerateCertificateResults{}
+	deviceCert, err := yk.AttestationCertificate()
+	if err != nil {
+		return nil, errors.Wrap(err, "device cert")
+	}
+	pemEncodedDeviceCertificate := pem.EncodeToMemory(&pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: deviceCert.Raw,
+	})
+	result.AttestationCertificate = pemEncodedDeviceCertificate
+
+	// generate a new key
 	pin, err := GetPin(opts.Prompt)
 	if err != nil {
-		return errors.Wrap(err, "get pin")
+		return nil, errors.Wrap(err, "get pin")
 	}
-
 	managementKey, err := GetOrSetManagementKey(yk, pin)
 	if err != nil {
-		return errors.Wrap(err, "failed to use management key")
+		return nil, errors.Wrap(err, "failed to use management key")
 	}
-
 	key := piv.Key{
 		Algorithm:   opts.Algorithm,
 		PINPolicy:   opts.PINPolicy,
 		TouchPolicy: opts.TouchPolicy,
 	}
-
 	publicKey, err := yk.GenerateKey(*managementKey, opts.Slot, key)
 	if err != nil {
-		return errors.Wrap(err, "generate new key")
+		return nil, errors.Wrap(err, "generate new key")
 	}
 
-	deviceCert, err := yk.AttestationCertificate()
-	if err != nil {
-		return errors.Wrap(err, "device cert")
-	}
-	fmt.Println("Printing Yubikey device attestation certificate:")
-	printCertificate(deviceCert)
-
+	// generate a certificate for the created key (and attest it)
 	keyCert, err := yk.Attest(opts.Slot)
 	if err != nil {
-		return errors.Wrap(err, "attest key")
+		return nil, errors.Wrap(err, "attest key")
 	}
-	fmt.Println("Printing generated key certificate:")
-	printCertificate(keyCert)
 	err = yk.SetCertificate(*managementKey, opts.Slot, keyCert)
 	if err != nil {
-		return errors.Wrap(err, "set yubikey certificate")
+		return nil, errors.Wrap(err, "set yubikey certificate")
 	}
-
 	auth := piv.KeyAuth{
 		PIN: pin,
 	}
 	privateKey, err := yk.PrivateKey(opts.Slot, publicKey, auth)
 	if err != nil {
-		return errors.Wrap(err, "access private key")
+		return nil, errors.Wrap(err, "access private key")
 	}
 	attestation, err := verify(deviceCert, keyCert)
 	if err != nil {
-		return errors.Wrap(err, "verify device certificate")
+		return nil, errors.Wrap(err, "verify device certificate")
 	}
+	result.Certificate = pem.EncodeToMemory(&pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: keyCert.Raw,
+	})
+
 	if opts.SelfSign {
 		if opts.TouchPolicy != piv.TouchPolicyNever {
 			fmt.Println("Touch Yubikey now to sign your key...")
@@ -114,19 +132,20 @@ func GenerateCertificate(yk Pivit, opts *GenerateCertificateOpts) error {
 
 		certificate, err := selfCertificate(strconv.FormatUint(uint64(attestation.Serial), 10), publicKey, privateKey)
 		if err != nil {
-			return err
+			return nil, err
 		}
-		fmt.Println("Printing self-signed certificate:")
-		printCertificateRaw(certificate)
 
-		cert, err := x509.ParseCertificate(certificate)
 		if err != nil {
-			return errors.Wrap(err, "parse self-signed certificate")
+			return nil, errors.Wrap(err, "parse self-signed certificate")
 		}
 
-		if err := importCert(cert, yk, managementKey, opts.Slot); err != nil {
-			return errors.Wrap(err, "import self-signed certificate")
+		if err := importCert(certificate, yk, managementKey, opts.Slot); err != nil {
+			return nil, errors.Wrap(err, "import self-signed certificate")
 		}
+		result.Certificate = pem.EncodeToMemory(&pem.Block{
+			Type:  "CERTIFICATE",
+			Bytes: certificate.Raw,
+		})
 	} else if opts.GenerateCsr {
 		if opts.TouchPolicy != piv.TouchPolicyNever {
 			fmt.Println("Touch Yubikey now to sign your CSR...")
@@ -134,13 +153,15 @@ func GenerateCertificate(yk Pivit, opts *GenerateCertificateOpts) error {
 
 		certRequest, err := certificateRequest(strconv.FormatUint(uint64(attestation.Serial), 10), privateKey)
 		if err != nil {
-			return err
+			return nil, err
 		}
-		fmt.Println("Printing certificate signing request:")
-		printCsr(certRequest)
+		result.CertificateSigningRequest = pem.EncodeToMemory(&pem.Block{
+			Type:  "CERTIFICATE REQUEST",
+			Bytes: certRequest,
+		})
 	}
 
-	return nil
+	return result, nil
 }
 
 func randomSerial() (*big.Int, error) {
@@ -151,7 +172,7 @@ func randomSerial() (*big.Int, error) {
 	return n, err
 }
 
-func selfCertificate(serialNumber string, publicKey crypto.PublicKey, privateKey crypto.PrivateKey) ([]byte, error) {
+func selfCertificate(serialNumber string, publicKey crypto.PublicKey, privateKey crypto.PrivateKey) (*x509.Certificate, error) {
 	emailAddress := os.Getenv("PIVIT_EMAIL")
 	pivitOrg := strings.Split(os.Getenv("PIVIT_ORG"), ",")
 	pivitOrgUnit := strings.Split(os.Getenv("PIVIT_ORG_UNIT"), ",")
@@ -187,7 +208,7 @@ func selfCertificate(serialNumber string, publicKey crypto.PublicKey, privateKey
 		return nil, errors.Wrap(err, "create certificate")
 	}
 
-	return data, nil
+	return x509.ParseCertificate(data)
 }
 
 func certificateRequest(serialNumber string, privateKey crypto.PrivateKey) ([]byte, error) {
@@ -226,23 +247,4 @@ func certificateRequest(serialNumber string, privateKey crypto.PrivateKey) ([]by
 	}
 
 	return csr, nil
-}
-
-func printCertificate(certificate *x509.Certificate) {
-	printCertificateRaw(certificate.Raw)
-}
-func printCertificateRaw(cert []byte) {
-	bytes := pem.EncodeToMemory(&pem.Block{
-		Type:  "CERTIFICATE",
-		Bytes: cert,
-	})
-	fmt.Println(string(bytes))
-}
-
-func printCsr(csr []byte) {
-	csrBytes := pem.EncodeToMemory(&pem.Block{
-		Type:  "CERTIFICATE REQUEST",
-		Bytes: csr,
-	})
-	fmt.Println(string(csrBytes))
 }

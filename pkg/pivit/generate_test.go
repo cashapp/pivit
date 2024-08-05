@@ -7,111 +7,105 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGenerateCertificate_selfSigned_notConfirmed(t *testing.T) {
+func TestGenerateCertificate(t *testing.T) {
 	yk, err := testYubikey()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	pin := &pinReader{pin: "n\n" + piv.DefaultPIN + "\n"}
-	opts := &GenerateCertificateOpts{
-		Algorithm:   piv.AlgorithmEC256,
-		SelfSign:    true,
-		GenerateCsr: false,
-		AssumeYes:   false,
-		PINPolicy:   piv.PINPolicyNever,
-		TouchPolicy: piv.TouchPolicyAlways,
-		Slot:        piv.Slot{},
-		Prompt:      pin,
-	}
-	err = GenerateCertificate(yk, opts)
-	assert.NoError(t, err)
-	assert.Empty(t, yk.slots)
-}
-
-func TestGenerateCertificate_selfSigned_assumeYes(t *testing.T) {
-	yk, err := testYubikey()
-	if err != nil {
-		t.Fatal(err)
-	}
 	patchPivVerify(yk)
 	defer unpatchPinVerify()
 
-	pin := &pinReader{pin: piv.DefaultPIN + "\n"}
-	opts := &GenerateCertificateOpts{
-		Algorithm:   piv.AlgorithmEC256,
-		SelfSign:    true,
-		GenerateCsr: false,
-		AssumeYes:   true,
-		PINPolicy:   piv.PINPolicyNever,
-		TouchPolicy: piv.TouchPolicyAlways,
-		Slot:        piv.SlotCardAuthentication,
-		Prompt:      pin,
-	}
-	err = GenerateCertificate(yk, opts)
-	assert.NoError(t, err)
-	assert.NotEmpty(t, yk.slots[piv.SlotCardAuthentication])
-}
+	testCases := []struct {
+		description string
+		selfSign    bool
+		generateCsr bool
+		assumeYes   bool
+		slot        piv.Slot
+		input       *pinReader
 
-func TestGenerateCertificate_selfSigned_confirmed(t *testing.T) {
-	yk, err := testYubikey()
-	if err != nil {
-		t.Fatal(err)
+		expectError       bool
+		expectNilResult   bool
+		shouldGenerateKey bool
+		shouldGenerateCsr bool
+	}{
+		{
+			description:     "self-signing fails when not confirmed",
+			selfSign:        true,
+			slot:            piv.Slot{},
+			input:           &pinReader{pin: "n\n" + piv.DefaultPIN + "\n"},
+			expectNilResult: true,
+		},
+		{
+			description:       "self-signed succeeds with assume yes",
+			selfSign:          true,
+			assumeYes:         true,
+			slot:              piv.SlotCardAuthentication,
+			input:             &pinReader{pin: piv.DefaultPIN + "\n"},
+			shouldGenerateKey: true,
+		},
+		{
+			description:       "self-signed succeeds with confirmation prompt",
+			selfSign:          true,
+			slot:              piv.SlotCardAuthentication,
+			input:             &pinReader{pin: "y\n" + piv.DefaultPIN + "\n"},
+			shouldGenerateKey: true,
+		},
+		{
+			description:       "generates certificate signing request",
+			generateCsr:       true,
+			slot:              piv.SlotCardAuthentication,
+			input:             &pinReader{pin: piv.DefaultPIN + "\n"},
+			shouldGenerateKey: true,
+			shouldGenerateCsr: true,
+		},
+		{
+			description: "fails when both self-sign and generate csr flags are true",
+			selfSign:    true,
+			generateCsr: true,
+			slot:        piv.SlotCardAuthentication,
+			expectError: true,
+		},
 	}
-	patchPivVerify(yk)
-	defer unpatchPinVerify()
-
-	pin := &pinReader{pin: "y\n" + piv.DefaultPIN + "\n"}
-	opts := &GenerateCertificateOpts{
-		Algorithm:   piv.AlgorithmEC256,
-		SelfSign:    true,
-		GenerateCsr: false,
-		AssumeYes:   false,
-		PINPolicy:   piv.PINPolicyNever,
-		TouchPolicy: piv.TouchPolicyAlways,
-		Slot:        piv.SlotCardAuthentication,
-		Prompt:      pin,
+	for _, test := range testCases {
+		t.Run(test.description, func(t *testing.T) {
+			defer func() {
+				_ = yk.Reset()
+			}()
+			opts := &GenerateCertificateOpts{
+				Algorithm:   piv.AlgorithmEC384,
+				SelfSign:    test.selfSign,
+				GenerateCsr: test.generateCsr,
+				AssumeYes:   test.assumeYes,
+				PINPolicy:   piv.PINPolicyNever,
+				TouchPolicy: piv.TouchPolicyAlways,
+				Slot:        piv.SlotCardAuthentication,
+				Prompt:      test.input,
+			}
+			result, err := GenerateCertificate(yk, opts)
+			if test.expectError {
+				assert.Error(t, err)
+				assert.Nil(t, result)
+			} else {
+				assert.NoError(t, err)
+				if test.expectNilResult {
+					assert.Nil(t, result)
+				} else {
+					assert.NotEmpty(t, result.AttestationCertificate)
+					if test.shouldGenerateKey {
+						assert.NotEmpty(t, result.Certificate)
+						assert.NotEmpty(t, yk.slots[test.slot].cert)
+					} else {
+						assert.Empty(t, result.Certificate)
+						assert.Empty(t, yk.slots[test.slot].cert)
+					}
+					if test.shouldGenerateCsr {
+						assert.NotEmpty(t, result.CertificateSigningRequest)
+					} else {
+						assert.Empty(t, result.CertificateSigningRequest)
+					}
+				}
+			}
+		})
 	}
-	err = GenerateCertificate(yk, opts)
-	assert.NoError(t, err)
-	assert.NotEmpty(t, yk.slots[piv.SlotCardAuthentication])
-}
-
-func TestGenerateCertificate_generateCsr(t *testing.T) {
-	yk, err := testYubikey()
-	if err != nil {
-		t.Fatal(err)
-	}
-	patchPivVerify(yk)
-	defer unpatchPinVerify()
-
-	pin := &pinReader{pin: piv.DefaultPIN + "\n"}
-	opts := &GenerateCertificateOpts{
-		Algorithm:   piv.AlgorithmEC256,
-		SelfSign:    false,
-		GenerateCsr: true,
-		AssumeYes:   false,
-		PINPolicy:   piv.PINPolicyNever,
-		TouchPolicy: piv.TouchPolicyAlways,
-		Slot:        piv.SlotCardAuthentication,
-		Prompt:      pin,
-	}
-	err = GenerateCertificate(yk, opts)
-	assert.NoError(t, err)
-	assert.NotEmpty(t, yk.slots[piv.SlotCardAuthentication])
-}
-
-func TestGenerateCertificate_badFlags(t *testing.T) {
-	opts := &GenerateCertificateOpts{
-		Algorithm:   piv.AlgorithmEC256,
-		SelfSign:    true,
-		GenerateCsr: true,
-		AssumeYes:   false,
-		PINPolicy:   piv.PINPolicyNever,
-		TouchPolicy: piv.TouchPolicyAlways,
-		Slot:        piv.SlotCardAuthentication,
-		Prompt:      nil,
-	}
-	err := GenerateCertificate(nil, opts)
-	assert.Error(t, err)
 }

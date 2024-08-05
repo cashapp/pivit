@@ -2,6 +2,8 @@ package pivit
 
 import (
 	"bytes"
+	"crypto/x509"
+	"encoding/pem"
 	"os"
 	"testing"
 
@@ -30,12 +32,16 @@ func TestSign(t *testing.T) {
 			pin: piv.DefaultPIN + "\n",
 		},
 	}
-	err = GenerateCertificate(yk, genOpts)
+	result, err := GenerateCertificate(yk, genOpts)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	cert := yk.slots[piv.SlotCardAuthentication].cert
+	pemCert, _ := pem.Decode(result.Certificate)
+	cert, err := x509.ParseCertificate(pemCert.Bytes)
+	if err != nil {
+		t.Fatal(err)
+	}
 	fingerprint := CertHexFingerprint(cert)
 
 	testCases := []struct {
@@ -106,11 +112,17 @@ func TestSign(t *testing.T) {
 				Slot:               test.slot,
 				Prompt:             nil,
 			}
-			err = Sign(yk, signOpts)
+			sig, err := Sign(yk, signOpts)
 			if test.expectError {
 				assert.Error(t, err)
+				assert.Nil(t, sig)
 			} else {
 				assert.NoError(t, err)
+				assert.NotEmpty(t, sig)
+				if test.armor {
+					block, _ := pem.Decode(sig)
+					assert.Equal(t, "SIGNED MESSAGE", block.Type)
+				}
 			}
 		})
 	}
