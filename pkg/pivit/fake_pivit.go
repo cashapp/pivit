@@ -40,6 +40,9 @@ type slotContent struct {
 func testYubikey() (*fakeYubikey, error) {
 	fakeSerial := "123456789"
 	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		return nil, err
+	}
 
 	subject := pkix.Name{
 		Organization:       []string{"Fake Yubico."},

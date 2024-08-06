@@ -92,9 +92,9 @@ func (y signer) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts) ([]b
 		return nil, err
 	}
 
-	switch private.(type) {
+	switch priv := private.(type) {
 	case *ecdsa.PrivateKey:
-		return private.(*ecdsa.PrivateKey).Sign(rand, digest, opts)
+		return priv.Sign(rand, digest, opts)
 	default:
 		return nil, fmt.Errorf("invalid key type")
 	}

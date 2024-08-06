@@ -148,9 +148,9 @@ func (s status) emitf(format string, args ...interface{}) {
 	}
 
 	const prefix = "[GNUPG:] "
-	statusFile.WriteString(prefix)
-	statusFile.WriteString(string(s))
-	fmt.Fprintf(statusFile, " "+format+"\n", args...)
+	_, _ = statusFile.WriteString(prefix)
+	_, _ = statusFile.WriteString(string(s))
+	_, _ = fmt.Fprintf(statusFile, " "+format+"\n", args...)
 }
 
 func (s status) emit() {
@@ -159,7 +159,7 @@ func (s status) emit() {
 	}
 
 	const prefix = "[GNUPG:] "
-	statusFile.WriteString(prefix + string(s) + "\n")
+	_, _ = statusFile.WriteString(prefix + string(s) + "\n")
 }
 
 // EmitSigCreated emits a status message specifying the signing operation is done
@@ -216,7 +216,7 @@ func EmitGoodSig(chains [][][]*x509.Certificate) {
 // EmitBadSig emits a status message specifying signature failed verification
 func EmitBadSig(chains [][][]*x509.Certificate) {
 	cert := chains[0][0][0]
-	subj := cert.Subject.String
+	subj := cert.Subject.String()
 	fpr := CertHexFingerprint(cert)
 
 	sBadSig.emitf("%s %s", fpr, subj)
