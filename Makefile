@@ -26,7 +26,7 @@ release: pivit
 	(\
 	set -e ;\
 	cp -f pivit $(EXE) ;\
-	gzip -9 $(EXE) ;\
+	gzip -f -9 $(EXE) ;\
 	)
 
 #
