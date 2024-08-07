@@ -97,7 +97,12 @@ func runCommand() error {
 			Message:            message,
 			Slot:               pivit.GetSlot(*slot),
 		}
-		return pivit.Sign(yk, opts)
+		signature, err := pivit.Sign(yk, opts)
+		if err != nil {
+			return err
+		}
+		_, err = os.Stdout.Write(signature)
+		return err
 	}
 
 	if *verifyFlag {
@@ -165,7 +170,8 @@ func runCommand() error {
 		if *signFlag || *verifyFlag || *generateFlag || importFlag || *printFlag {
 			return errors.New("specify --help, --sign, --verify, --import, --generate, --reset or --print")
 		}
-		return pivit.ResetYubikey(yk)
+		opts := &pivit.ResetOpts{Prompt: os.Stdin}
+		return pivit.ResetYubikey(yk, opts)
 	}
 
 	if *generateFlag {
@@ -177,9 +183,6 @@ func runCommand() error {
 			algorithm = piv.AlgorithmEC256
 		} else {
 			algorithm = piv.AlgorithmEC384
-		}
-		if *selfSignFlag && *noCsrFlag {
-			return errors.New("can't specify both --self-sign and --no-csr")
 		}
 		generateCsr := true
 		if *noCsrFlag {
@@ -215,8 +218,26 @@ func runCommand() error {
 			PINPolicy:   pinPolicy,
 			TouchPolicy: touchPolicy,
 			Slot:        pivit.GetSlot(*slot),
+			Prompt:      os.Stdin,
 		}
-		return pivit.GenerateCertificate(yk, opts)
+		result, err := pivit.GenerateCertificate(yk, opts)
+		if err != nil {
+			return err
+		}
+		fmt.Println("Printing Yubikey device attestation certificate:")
+		fmt.Println(string(result.AttestationCertificate))
+		if opts.SelfSign {
+			fmt.Println("Printing self-signed certificate:")
+		} else {
+			fmt.Println("Printing generated key certificate:")
+		}
+		fmt.Println(string(result.Certificate))
+		if opts.GenerateCsr {
+			fmt.Println("Printing certificate signing request:")
+			fmt.Println(string(result.CertificateSigningRequest))
+		}
+
+		return nil
 	}
 
 	if importFlag {
@@ -228,6 +249,7 @@ func runCommand() error {
 			Filename:       *importOpt,
 			StopAfterFirst: *firstOpt,
 			Slot:           pivit.GetSlot(*slot),
+			Prompt:         os.Stdin,
 		}
 		return pivit.ImportCertificate(yk, opts)
 	}

@@ -3,6 +3,7 @@ package pivit
 import (
 	"crypto/x509"
 	"encoding/pem"
+	"io"
 	"os"
 
 	"github.com/go-piv/piv-go/piv"
@@ -17,6 +18,8 @@ type ImportOpts struct {
 	StopAfterFirst bool
 	// Slot to store the certificate in
 	Slot piv.Slot
+	// Prompt where to get the pin from
+	Prompt io.ReadCloser
 }
 
 // ImportCertificate stores a certificate file in a yubikey PIV slot
@@ -46,7 +49,7 @@ func ImportCertificate(yk Pivit, opts *ImportOpts) error {
 		return errors.New("certificate not found")
 	}
 
-	pin, err := GetPin()
+	pin, err := GetPin(opts.Prompt)
 	if err != nil {
 		return errors.Wrap(err, "get pin")
 	}

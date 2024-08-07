@@ -5,7 +5,6 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"io"
-	"os"
 	"strings"
 
 	"github.com/go-piv/piv-go/piv"
@@ -30,35 +29,37 @@ type SignOpts struct {
 	Message io.Reader
 	// Slot containing key for signing
 	Slot piv.Slot
+	// Prompt where to get the pin from
+	Prompt io.ReadCloser
 }
 
 const signedMessagePemHeader = "SIGNED MESSAGE"
 
 // Sign creates a digital signature from the given data in SignOpts.Message
-func Sign(yk Pivit, opts *SignOpts) error {
+func Sign(yk Pivit, opts *SignOpts) ([]byte, error) {
 	cert, err := yk.Certificate(opts.Slot)
 	if err != nil {
-		return errors.Wrap(err, "get identity certificate")
+		return nil, errors.Wrap(err, "get identity certificate")
 	}
 
 	if err = certificateContainsUserId(cert, opts.UserId); err != nil {
-		return errors.Wrap(err, "no suitable certificate found")
+		return nil, errors.Wrap(err, "no suitable certificate found")
 	}
 
 	SetupStatus(opts.StatusFd)
 	dataBuf := new(bytes.Buffer)
 	if _, err = io.Copy(dataBuf, opts.Message); err != nil {
-		return errors.Wrap(err, "read message to sign")
+		return nil, errors.Wrap(err, "read message to sign")
 	}
 
 	sd, err := cms.NewSignedData(dataBuf.Bytes())
 	if err != nil {
-		return errors.Wrap(err, "create signed data")
+		return nil, errors.Wrap(err, "create signed data")
 	}
 
-	yubikeySigner := NewYubikeySigner(yk, opts.Slot)
+	yubikeySigner := NewYubikeySigner(yk, opts.Slot, opts.Prompt)
 	if err = sd.Sign([]*x509.Certificate{cert}, yubikeySigner); err != nil {
-		return errors.Wrap(err, "sign message")
+		return nil, errors.Wrap(err, "sign message")
 	}
 	// Git is looking for "\n[GNUPG:] SIG_CREATED ", meaning we need to print a
 	// line before SIG_CREATED. BEGIN_SIGNING seems appropriate. GPG emits this,
@@ -70,34 +71,34 @@ func Sign(yk Pivit, opts *SignOpts) error {
 
 	if len(opts.TimestampAuthority) > 0 {
 		if err = sd.AddTimestamps(opts.TimestampAuthority); err != nil {
-			return errors.Wrap(err, "add timestamp to signature")
+			return nil, errors.Wrap(err, "add timestamp to signature")
 		}
 	}
 
 	chain := []*x509.Certificate{cert}
 	if err = sd.SetCertificates(chain); err != nil {
-		return errors.Wrap(err, "set certificates in signature")
+		return nil, errors.Wrap(err, "set certificates in signature")
 	}
 
 	der, err := sd.ToDER()
 	if err != nil {
-		return errors.Wrap(err, "serialize signature")
+		return nil, errors.Wrap(err, "serialize signature")
 	}
 
 	EmitSigCreated(cert, opts.Detach)
 	if opts.Armor {
-		err = pem.Encode(os.Stdout, &pem.Block{
+		buf := &bytes.Buffer{}
+		err = pem.Encode(buf, &pem.Block{
 			Type:  signedMessagePemHeader,
 			Bytes: der,
 		})
+		if err != nil {
+			return nil, errors.New("write signature")
+		}
+		return buf.Bytes(), nil
 	} else {
-		_, err = os.Stdout.Write(der)
+		return der, nil
 	}
-	if err != nil {
-		return errors.New("write signature")
-	}
-
-	return nil
 }
 
 func certificateContainsUserId(cert *x509.Certificate, userId string) error {

@@ -11,7 +11,7 @@ in buildGoModule rec {
   src = ./..;
 
   # This needs to be updated whenever go.sum changes
-  vendorHash = "sha256-T2QZ03ZOooZ2Mkny808arbchTtLLNwKcaQ3tJDhsleA=";
+  vendorHash = "sha256-tgONzmRkJoFLA2PvXbum5BdPCtlyA4s6jNIjpmyUjvc=";
 
   buildInputs = pcsc;
 
