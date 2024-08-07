@@ -25,7 +25,7 @@ EXE = pivit-$(GOOS)-$(GOARCH)
 release: pivit
 	(\
 	set -e ;\
-	cp pivit $(EXE) ;\
+	cp -f pivit $(EXE) ;\
 	gzip -9 $(EXE) ;\
 	)
 
