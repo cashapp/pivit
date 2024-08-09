@@ -44,7 +44,7 @@ jobs:
         run: |
           set -euxo pipefail
           cd ${{ github.workspace }}
-          make release
+          make release GOARCH=amd64
           if ${{ matrix.os == 'macos-latest' }}; then
             make release GOARCH=arm64
           fi
