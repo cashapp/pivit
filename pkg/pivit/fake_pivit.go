@@ -320,12 +320,12 @@ func (f *fakeYubikey) Version() piv.Version {
 
 var _ Pivit = (*fakeYubikey)(nil)
 
-type pinReader struct {
+type promptReader struct {
 	pin   string
 	index int
 }
 
-func (p2 *pinReader) Read(p []byte) (n int, err error) {
+func (p2 *promptReader) Read(p []byte) (n int, err error) {
 	for i, b := range []byte(p2.pin[p2.index:]) {
 		p2.index++
 		p[i] = b
@@ -336,11 +336,11 @@ func (p2 *pinReader) Read(p []byte) (n int, err error) {
 	return p2.index, nil
 }
 
-func (p2 *pinReader) Close() error {
+func (p2 *promptReader) Close() error {
 	return nil
 }
 
-var _ io.ReadCloser = (*pinReader)(nil)
+var _ io.ReadCloser = (*promptReader)(nil)
 
 func patchPivVerify(yubikey *fakeYubikey) {
 	verify = func(attestationCert, slotCert *x509.Certificate) (*piv.Attestation, error) {

@@ -49,13 +49,13 @@ func YubikeyHandle() (*piv.YubiKey, error) {
 type signer struct {
 	yk    Pivit
 	s     piv.Slot
-	stdin io.ReadCloser
+	stdin io.Reader
 }
 
 var _ crypto.Signer = (*signer)(nil)
 
 // NewYubikeySigner returns a signer
-func NewYubikeySigner(yk Pivit, s piv.Slot, stdin io.ReadCloser) crypto.Signer {
+func NewYubikeySigner(yk Pivit, s piv.Slot, stdin io.Reader) crypto.Signer {
 	return signer{
 		yk:    yk,
 		s:     s,

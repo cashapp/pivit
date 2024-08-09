@@ -13,9 +13,8 @@ func TestReset(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	pin := &pinReader{pin: "87654321\n"}
 	err = ResetYubikey(yk, &ResetOpts{
-		Prompt: pin,
+		Pin: "87654321",
 	})
 	if err != nil {
 		t.Fatal(err)

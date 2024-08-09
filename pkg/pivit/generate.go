@@ -6,7 +6,6 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
-	"fmt"
 	"io"
 	"math/big"
 	"net"
@@ -36,8 +35,10 @@ type GenerateCertificateOpts struct {
 	TouchPolicy piv.TouchPolicy
 	// Slot to use for the private key
 	Slot piv.Slot
-	// Prompt where to get the pin from
+	// Prompt where to get user confirmation from
 	Prompt io.ReadCloser
+	// Pin to access the Yubikey
+	Pin string
 }
 
 type GenerateCertificateResults struct {
@@ -82,11 +83,7 @@ func GenerateCertificate(yk Pivit, opts *GenerateCertificateOpts) (*GenerateCert
 	result.AttestationCertificate = pemEncodedDeviceCertificate
 
 	// generate a new key
-	pin, err := GetPin(opts.Prompt)
-	if err != nil {
-		return nil, errors.Wrap(err, "get pin")
-	}
-	managementKey, err := GetOrSetManagementKey(yk, pin)
+	managementKey, err := GetOrSetManagementKey(yk, opts.Pin)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to use management key")
 	}
@@ -110,7 +107,7 @@ func GenerateCertificate(yk Pivit, opts *GenerateCertificateOpts) (*GenerateCert
 		return nil, errors.Wrap(err, "set yubikey certificate")
 	}
 	auth := piv.KeyAuth{
-		PIN: pin,
+		PIN: opts.Pin,
 	}
 	privateKey, err := yk.PrivateKey(opts.Slot, publicKey, auth)
 	if err != nil {
@@ -126,10 +123,6 @@ func GenerateCertificate(yk Pivit, opts *GenerateCertificateOpts) (*GenerateCert
 	})
 
 	if opts.SelfSign {
-		if opts.TouchPolicy != piv.TouchPolicyNever {
-			fmt.Println("Touch Yubikey now to sign your key...")
-		}
-
 		certificate, err := selfCertificate(strconv.FormatUint(uint64(attestation.Serial), 10), publicKey, privateKey)
 		if err != nil {
 			return nil, err
@@ -139,18 +132,16 @@ func GenerateCertificate(yk Pivit, opts *GenerateCertificateOpts) (*GenerateCert
 			return nil, errors.Wrap(err, "parse self-signed certificate")
 		}
 
-		if err := importCert(certificate, yk, managementKey, opts.Slot); err != nil {
-			return nil, errors.Wrap(err, "import self-signed certificate")
+		err = yk.SetCertificate(*managementKey, opts.Slot, certificate)
+		if err != nil {
+			return nil, errors.Wrap(err, "set certificate")
 		}
+
 		result.Certificate = pem.EncodeToMemory(&pem.Block{
 			Type:  "CERTIFICATE",
 			Bytes: certificate.Raw,
 		})
 	} else if opts.GenerateCsr {
-		if opts.TouchPolicy != piv.TouchPolicyNever {
-			fmt.Println("Touch Yubikey now to sign your CSR...")
-		}
-
 		certRequest, err := certificateRequest(strconv.FormatUint(uint64(attestation.Serial), 10), privateKey)
 		if err != nil {
 			return nil, err

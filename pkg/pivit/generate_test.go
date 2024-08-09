@@ -22,7 +22,7 @@ func TestGenerateCertificate(t *testing.T) {
 		generateCsr bool
 		assumeYes   bool
 		slot        piv.Slot
-		input       *pinReader
+		input       *promptReader
 
 		expectError       bool
 		expectNilResult   bool
@@ -33,7 +33,7 @@ func TestGenerateCertificate(t *testing.T) {
 			description:     "self-signing fails when not confirmed",
 			selfSign:        true,
 			slot:            piv.Slot{},
-			input:           &pinReader{pin: "n\n" + piv.DefaultPIN + "\n"},
+			input:           &promptReader{pin: "n\n"},
 			expectNilResult: true,
 		},
 		{
@@ -41,21 +41,19 @@ func TestGenerateCertificate(t *testing.T) {
 			selfSign:          true,
 			assumeYes:         true,
 			slot:              piv.SlotCardAuthentication,
-			input:             &pinReader{pin: piv.DefaultPIN + "\n"},
 			shouldGenerateKey: true,
 		},
 		{
 			description:       "self-signed succeeds with confirmation prompt",
 			selfSign:          true,
 			slot:              piv.SlotCardAuthentication,
-			input:             &pinReader{pin: "y\n" + piv.DefaultPIN + "\n"},
+			input:             &promptReader{pin: "y\n"},
 			shouldGenerateKey: true,
 		},
 		{
 			description:       "generates certificate signing request",
 			generateCsr:       true,
 			slot:              piv.SlotCardAuthentication,
-			input:             &pinReader{pin: piv.DefaultPIN + "\n"},
 			shouldGenerateKey: true,
 			shouldGenerateCsr: true,
 		},
@@ -81,6 +79,7 @@ func TestGenerateCertificate(t *testing.T) {
 				TouchPolicy: piv.TouchPolicyAlways,
 				Slot:        piv.SlotCardAuthentication,
 				Prompt:      test.input,
+				Pin:         piv.DefaultPIN,
 			}
 			result, err := GenerateCertificate(yk, opts)
 			if test.expectError {

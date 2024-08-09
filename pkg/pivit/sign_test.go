@@ -28,9 +28,7 @@ func TestSign(t *testing.T) {
 		PINPolicy:   piv.PINPolicyNever,
 		TouchPolicy: piv.TouchPolicyAlways,
 		Slot:        piv.SlotCardAuthentication,
-		Prompt: &pinReader{
-			pin: piv.DefaultPIN + "\n",
-		},
+		Pin:         piv.DefaultPIN,
 	}
 	result, err := GenerateCertificate(yk, genOpts)
 	if err != nil {

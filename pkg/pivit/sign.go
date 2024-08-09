@@ -29,7 +29,7 @@ type SignOpts struct {
 	Message io.Reader
 	// Slot containing key for signing
 	Slot piv.Slot
-	// Prompt where to get the pin from
+	// Prompt where to get the pin from (only used if piv.PINPolicy requires it)
 	Prompt io.ReadCloser
 }
 

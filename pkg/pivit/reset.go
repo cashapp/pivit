@@ -3,7 +3,6 @@ package pivit
 import (
 	"crypto/rand"
 	"fmt"
-	"io"
 	"math/big"
 
 	"github.com/go-piv/piv-go/piv"
@@ -11,8 +10,8 @@ import (
 )
 
 type ResetOpts struct {
-	// Prompt where to get the pin from
-	Prompt io.ReadCloser
+	// Pin new PIN to set for performing certain operations on the Yubikey
+	Pin string
 }
 
 // ResetYubikey resets the yubikey, sets a new pin, and sets a random PIN unblock key
@@ -21,12 +20,7 @@ func ResetYubikey(yk Pivit, opts *ResetOpts) error {
 		return errors.Wrap(err, "reset PIV applet")
 	}
 
-	newPin, err := GetPin(opts.Prompt)
-	if err != nil {
-		return errors.Wrap(err, "get pin")
-	}
-
-	if err = yk.SetPIN(piv.DefaultPIN, newPin); err != nil {
+	if err := yk.SetPIN(piv.DefaultPIN, opts.Pin); err != nil {
 		return errors.Wrap(err, "failed to change pin")
 	}
 

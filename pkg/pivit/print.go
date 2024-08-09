@@ -2,23 +2,27 @@ package pivit
 
 import (
 	"encoding/pem"
-	"fmt"
 
 	"github.com/go-piv/piv-go/piv"
 
 	"github.com/pkg/errors"
 )
 
-type PrintCertificateOpts struct {
+type CertificateOpts struct {
 	// Slot to get certificate from
 	Slot piv.Slot
 }
 
-// PrintCertificate exports the certificate.
-func PrintCertificate(yk Pivit, opts *PrintCertificateOpts) error {
+type CertificateOutput struct {
+	Fingerprint    string
+	CertificatePem string
+}
+
+// Certificate exports the certificate.
+func Certificate(yk Pivit, opts *CertificateOpts) (*CertificateOutput, error) {
 	cert, err := yk.Certificate(opts.Slot)
 	if err != nil {
-		return errors.Wrap(err, "get PIV certificate")
+		return nil, errors.Wrap(err, "get PIV certificate")
 	}
 
 	certBytes := pem.EncodeToMemory(&pem.Block{
@@ -26,7 +30,8 @@ func PrintCertificate(yk Pivit, opts *PrintCertificateOpts) error {
 		Bytes: cert.Raw,
 	})
 	fingerprint := CertHexFingerprint(cert)
-	_, _ = fmt.Printf("%s\n%s", fingerprint, string(certBytes))
-
-	return nil
+	return &CertificateOutput{
+		Fingerprint:    fingerprint,
+		CertificatePem: string(certBytes),
+	}, nil
 }
