@@ -265,6 +265,9 @@ func runCommand() error {
 			return err
 		}
 		certificateBytes, err := os.ReadFile(*importOpt)
+		if err != nil {
+			return errors.Wrap(err, "failed to read certificate file")
+		}
 		opts := &pivit.ImportOpts{
 			CertificateBytes: certificateBytes,
 			StopAfterFirst:   *firstOpt,
