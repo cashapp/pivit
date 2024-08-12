@@ -22,8 +22,8 @@ func CertHexFingerprint(certificate *x509.Certificate) string {
 	return fingerprintString
 }
 
-// GetPin prompts the user for a PIN and returns what the user entered in stdin as a string
-func GetPin(reader io.ReadCloser) (string, error) {
+// GetPin prompts the user for a PIN
+func GetPin(reader io.Reader) (string, error) {
 	validatePin := func(input string) error {
 		if len(input) < 6 || len(input) > 8 {
 			return fmt.Errorf("PIN must be 6-8 digits long")
@@ -31,11 +31,17 @@ func GetPin(reader io.ReadCloser) (string, error) {
 		return nil
 	}
 
+	// promptui.Prompt requires io.ReadCloser for some reason, but it's much nicer to pass io.Reader
+	// if what the user gave us doesn't implement io.ReadCloser, we'll wrap it for them
+	readCloser, ok := reader.(io.ReadCloser)
+	if !ok {
+		readCloser = readeCloser(reader)
+	}
 	prompt := promptui.Prompt{
 		Label:    "PIN",
 		Validate: validatePin,
 		Mask:     '*',
-		Stdin:    reader,
+		Stdin:    readCloser,
 	}
 
 	newPin, err := prompt.Run()
@@ -129,3 +135,21 @@ func GetOrSetManagementKey(yk Pivit, pin string) (*[24]byte, error) {
 	}
 	return newManagementKey, nil
 }
+
+func readeCloser(reader io.Reader) io.ReadCloser {
+	readCloser, ok := reader.(io.ReadCloser)
+	if ok {
+		return readCloser
+	}
+	return ReaderWrapper{reader}
+}
+
+type ReaderWrapper struct {
+	io.Reader
+}
+
+func (r ReaderWrapper) Close() error {
+	return nil
+}
+
+var _ io.ReadCloser = (*ReaderWrapper)(nil)

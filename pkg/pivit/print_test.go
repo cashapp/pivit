@@ -7,16 +7,16 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestPrintCertificate_errEmptyYubikey(t *testing.T) {
+func TestCertificate_errEmptyYubikey(t *testing.T) {
 	yk, err := testYubikey()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	opts := &PrintCertificateOpts{
+	opts := &CertificateOpts{
 		Slot: piv.SlotCardAuthentication,
 	}
-	err = PrintCertificate(yk, opts)
+	_, err = Certificate(yk, opts)
 	assert.Error(t, err, "key not found")
 }
 
@@ -41,9 +41,11 @@ func TestPrintCertificate_success(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	opts := &PrintCertificateOpts{
+	opts := &CertificateOpts{
 		Slot: piv.SlotCardAuthentication,
 	}
-	err = PrintCertificate(yk, opts)
+	output, err := Certificate(yk, opts)
 	assert.NoError(t, err)
+	assert.NotEmpty(t, output.Fingerprint)
+	assert.NotNil(t, output.CertificatePem)
 }

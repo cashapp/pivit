@@ -96,6 +96,7 @@ func runCommand() error {
 			TimestampAuthority: *tsaOpt,
 			Message:            message,
 			Slot:               pivit.GetSlot(*slot),
+			Prompt:             os.Stdin,
 		}
 		signature, err := pivit.Sign(yk, opts)
 		if err != nil {
@@ -170,7 +171,11 @@ func runCommand() error {
 		if *signFlag || *verifyFlag || *generateFlag || importFlag || *printFlag {
 			return errors.New("specify --help, --sign, --verify, --import, --generate, --reset or --print")
 		}
-		opts := &pivit.ResetOpts{Prompt: os.Stdin}
+		pin, err := pivit.GetPin(os.Stdin)
+		if err != nil {
+			return err
+		}
+		opts := &pivit.ResetOpts{Pin: pin}
 		return pivit.ResetYubikey(yk, opts)
 	}
 
@@ -210,6 +215,10 @@ func runCommand() error {
 			return errors.New("can't set both PIN and touch policies to \"never\"")
 		}
 
+		pin, err := pivit.GetPin(os.Stdin)
+		if err != nil {
+			return err
+		}
 		opts := &pivit.GenerateCertificateOpts{
 			Algorithm:   algorithm,
 			SelfSign:    *selfSignFlag,
@@ -219,6 +228,12 @@ func runCommand() error {
 			TouchPolicy: touchPolicy,
 			Slot:        pivit.GetSlot(*slot),
 			Prompt:      os.Stdin,
+			Pin:         pin,
+		}
+		if generateCsr {
+			fmt.Println("Touch Yubikey now to sign your CSR...")
+		} else {
+			fmt.Println("Touch Yubikey now to sign your key...")
 		}
 		result, err := pivit.GenerateCertificate(yk, opts)
 		if err != nil {
@@ -245,11 +260,19 @@ func runCommand() error {
 			return errors.New("specify --help, --sign, --verify, --import, --generate, --reset or --print")
 		}
 
+		pin, err := pivit.GetPin(os.Stdin)
+		if err != nil {
+			return err
+		}
+		certificateBytes, err := os.ReadFile(*importOpt)
+		if err != nil {
+			return errors.Wrap(err, "failed to read certificate file")
+		}
 		opts := &pivit.ImportOpts{
-			Filename:       *importOpt,
-			StopAfterFirst: *firstOpt,
-			Slot:           pivit.GetSlot(*slot),
-			Prompt:         os.Stdin,
+			CertificateBytes: certificateBytes,
+			StopAfterFirst:   *firstOpt,
+			Slot:             pivit.GetSlot(*slot),
+			Pin:              pin,
 		}
 		return pivit.ImportCertificate(yk, opts)
 	}
@@ -258,10 +281,15 @@ func runCommand() error {
 		if *signFlag || *verifyFlag || *generateFlag || *resetFlag || importFlag {
 			return errors.New("specify --help, --sign, --verify, --import, --generate, --reset or --print")
 		}
-		opts := &pivit.PrintCertificateOpts{
+		opts := &pivit.CertificateOpts{
 			Slot: pivit.GetSlot(*slot),
 		}
-		return pivit.PrintCertificate(yk, opts)
+		certificateInfo, err := pivit.Certificate(yk, opts)
+		if err != nil {
+			return err
+		}
+		_, err = fmt.Fprintf(os.Stdout, "%s\n%s\n", certificateInfo.Fingerprint, certificateInfo.CertificatePem)
+		return err
 	}
 
 	return errors.New("specify --help, --sign, --verify, --import, --generate, --reset or --print")

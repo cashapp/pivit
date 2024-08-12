@@ -27,9 +27,7 @@ func TestVerifySignature(t *testing.T) {
 		PINPolicy:   piv.PINPolicyNever,
 		TouchPolicy: piv.TouchPolicyAlways,
 		Slot:        piv.SlotCardAuthentication,
-		Prompt: &pinReader{
-			pin: piv.DefaultPIN + "\n",
-		},
+		Pin:         piv.DefaultPIN,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -84,7 +82,6 @@ func TestVerifySignature(t *testing.T) {
 				TimestampAuthority: "",
 				Message:            test.message,
 				Slot:               piv.SlotCardAuthentication,
-				Prompt:             nil,
 			})
 			if err != nil {
 				t.Fatal(err)
@@ -114,7 +111,6 @@ func TestVerifySignature(t *testing.T) {
 			TimestampAuthority: "",
 			Message:            &bytes.Buffer{},
 			Slot:               piv.SlotCardAuthentication,
-			Prompt:             nil,
 		})
 		if err != nil {
 			t.Fatal(err)
@@ -136,7 +132,6 @@ func TestVerifySignature(t *testing.T) {
 			TimestampAuthority: "",
 			Message:            &bytes.Buffer{},
 			Slot:               piv.SlotCardAuthentication,
-			Prompt:             nil,
 		})
 		if err != nil {
 			t.Fatal(err)
@@ -163,7 +158,6 @@ func TestVerifySignature(t *testing.T) {
 			TimestampAuthority: "",
 			Message:            &bytes.Buffer{},
 			Slot:               piv.SlotCardAuthentication,
-			Prompt:             nil,
 		})
 		if err != nil {
 			t.Fatal(err)
