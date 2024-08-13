@@ -32,7 +32,8 @@ type GenerateCertificateOpts struct {
 	PINPolicy piv.PINPolicy
 	// TouchPolicy specifies when (or if) to touch the yubikey to access the private key
 	TouchPolicy piv.TouchPolicy
-	// CertificateParameters
+	// CertificateParameters contains the subject information and DNS names, URIs, IP addresses,
+	// and email addresses the generated certificate/CSR will be tied to
 	CertificateParameters CertificateParameters
 	// Slot to use for the private key
 	Slot piv.Slot
