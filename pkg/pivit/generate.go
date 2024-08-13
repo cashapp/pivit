@@ -10,7 +10,6 @@ import (
 	"math/big"
 	"net"
 	"net/url"
-	"slices"
 	"strconv"
 
 	"github.com/go-piv/piv-go/piv"
@@ -193,7 +192,7 @@ func selfCertificate(serialNumber string, publicKey crypto.PublicKey, privateKey
 		return nil, errors.Wrap(err, "create certificate random serial")
 	}
 
-	if !slices.Contains(params.CertificateEmailAddresses, params.SubjectEmailAddress) {
+	if !contains(params.CertificateEmailAddresses, params.SubjectEmailAddress) {
 		params.CertificateEmailAddresses = append(params.CertificateEmailAddresses, params.SubjectEmailAddress)
 	}
 
@@ -218,7 +217,7 @@ func selfCertificate(serialNumber string, publicKey crypto.PublicKey, privateKey
 }
 
 func certificateRequest(serialNumber string, privateKey crypto.PrivateKey, params CertificateParameters) ([]byte, error) {
-	if !slices.Contains(params.CertificateEmailAddresses, params.SubjectEmailAddress) {
+	if !contains(params.CertificateEmailAddresses, params.SubjectEmailAddress) {
 		params.CertificateEmailAddresses = append(params.CertificateEmailAddresses, params.SubjectEmailAddress)
 	}
 	subject := pkix.Name{
@@ -243,4 +242,13 @@ func certificateRequest(serialNumber string, privateKey crypto.PrivateKey, param
 	}
 
 	return csr, nil
+}
+
+func contains(slice []string, emailAddress string) bool {
+	for _, element := range slice {
+		if element == emailAddress {
+			return true
+		}
+	}
+	return false
 }
