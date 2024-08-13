@@ -3,7 +3,10 @@ package main
 import (
 	"fmt"
 	"io"
+	"net"
+	"net/url"
 	"os"
+	"strings"
 
 	"github.com/cashapp/pivit/pkg/pivit"
 	"github.com/go-piv/piv-go/piv"
@@ -219,16 +222,39 @@ func runCommand() error {
 		if err != nil {
 			return err
 		}
+
+		certEmailAddress := os.Getenv("PIVIT_EMAIL")
+		certOrg := strings.Split(os.Getenv("PIVIT_ORG"), ",")
+		certOrgUnit := strings.Split(os.Getenv("PIVIT_ORG_UNIT"), ",")
+		certURIs := strings.Split(os.Getenv("PIVIT_CERT_URIS"), " ")
+		certURLs := make([]*url.URL, 0)
+		for _, uri := range certURIs {
+			url, err := url.Parse(uri)
+			if err != nil {
+				certURLs = append(certURLs, url)
+			}
+		}
+
+		certParams := pivit.CertificateParameters{
+			SubjectEmailAddress:       certEmailAddress,
+			SubjectOrganization:       certOrg,
+			SubjectOrganizationUnit:   certOrgUnit,
+			CertificateURIs:           certURLs,
+			CertificateIPAddresses:    []net.IP{},
+			CertificateEmailAddresses: []string{certEmailAddress},
+			CertificateDNSNames:       []string{},
+		}
 		opts := &pivit.GenerateCertificateOpts{
-			Algorithm:   algorithm,
-			SelfSign:    *selfSignFlag,
-			GenerateCsr: generateCsr,
-			AssumeYes:   *assumeYesFlag,
-			PINPolicy:   pinPolicy,
-			TouchPolicy: touchPolicy,
-			Slot:        pivit.GetSlot(*slot),
-			Prompt:      os.Stdin,
-			Pin:         pin,
+			Algorithm:             algorithm,
+			SelfSign:              *selfSignFlag,
+			GenerateCsr:           generateCsr,
+			AssumeYes:             *assumeYesFlag,
+			PINPolicy:             pinPolicy,
+			TouchPolicy:           touchPolicy,
+			CertificateParameters: certParams,
+			Slot:                  pivit.GetSlot(*slot),
+			Prompt:                os.Stdin,
+			Pin:                   pin,
 		}
 		if generateCsr {
 			fmt.Println("Touch Yubikey now to sign your CSR...")

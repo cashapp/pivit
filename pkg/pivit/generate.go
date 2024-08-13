@@ -10,9 +10,8 @@ import (
 	"math/big"
 	"net"
 	"net/url"
-	"os"
+	"slices"
 	"strconv"
-	"strings"
 
 	"github.com/go-piv/piv-go/piv"
 	"github.com/pkg/errors"
@@ -33,12 +32,25 @@ type GenerateCertificateOpts struct {
 	PINPolicy piv.PINPolicy
 	// TouchPolicy specifies when (or if) to touch the yubikey to access the private key
 	TouchPolicy piv.TouchPolicy
+	// CertificateParameters
+	CertificateParameters CertificateParameters
 	// Slot to use for the private key
 	Slot piv.Slot
 	// Prompt where to get user confirmation from
 	Prompt io.ReadCloser
 	// Pin to access the Yubikey
 	Pin string
+}
+
+type CertificateParameters struct {
+	SubjectEmailAddress     string
+	SubjectOrganization     []string
+	SubjectOrganizationUnit []string
+
+	CertificateURIs           []*url.URL
+	CertificateIPAddresses    []net.IP
+	CertificateEmailAddresses []string
+	CertificateDNSNames       []string
 }
 
 type GenerateCertificateResults struct {
@@ -117,13 +129,14 @@ func GenerateCertificate(yk Pivit, opts *GenerateCertificateOpts) (*GenerateCert
 	if err != nil {
 		return nil, errors.Wrap(err, "verify device certificate")
 	}
+	deviceSerialNumber := strconv.FormatUint(uint64(attestation.Serial), 10)
 	result.Certificate = pem.EncodeToMemory(&pem.Block{
 		Type:  "CERTIFICATE",
 		Bytes: keyCert.Raw,
 	})
 
 	if opts.SelfSign {
-		certificate, err := selfCertificate(strconv.FormatUint(uint64(attestation.Serial), 10), publicKey, privateKey)
+		certificate, err := selfCertificate(deviceSerialNumber, publicKey, privateKey, opts.CertificateParameters)
 		if err != nil {
 			return nil, err
 		}
@@ -142,7 +155,7 @@ func GenerateCertificate(yk Pivit, opts *GenerateCertificateOpts) (*GenerateCert
 			Bytes: certificate.Raw,
 		})
 	} else if opts.GenerateCsr {
-		certRequest, err := certificateRequest(strconv.FormatUint(uint64(attestation.Serial), 10), privateKey)
+		certRequest, err := certificateRequest(deviceSerialNumber, privateKey, opts.CertificateParameters)
 		if err != nil {
 			return nil, err
 		}
@@ -163,15 +176,12 @@ func randomSerial() (*big.Int, error) {
 	return n, err
 }
 
-func selfCertificate(serialNumber string, publicKey crypto.PublicKey, privateKey crypto.PrivateKey) (*x509.Certificate, error) {
-	emailAddress := os.Getenv("PIVIT_EMAIL")
-	pivitOrg := strings.Split(os.Getenv("PIVIT_ORG"), ",")
-	pivitOrgUnit := strings.Split(os.Getenv("PIVIT_ORG_UNIT"), ",")
+func selfCertificate(serialNumber string, publicKey crypto.PublicKey, privateKey crypto.PrivateKey, params CertificateParameters) (*x509.Certificate, error) {
 	subject := pkix.Name{
-		Organization:       pivitOrg,
-		OrganizationalUnit: pivitOrgUnit,
+		Organization:       params.SubjectOrganization,
+		OrganizationalUnit: params.SubjectOrganizationUnit,
 		SerialNumber:       serialNumber,
-		CommonName:         emailAddress,
+		CommonName:         params.SubjectEmailAddress,
 	}
 	extKeyUsage := []x509.ExtKeyUsage{
 		x509.ExtKeyUsageClientAuth,
@@ -182,13 +192,17 @@ func selfCertificate(serialNumber string, publicKey crypto.PublicKey, privateKey
 		return nil, errors.Wrap(err, "create certificate random serial")
 	}
 
+	if !slices.Contains(params.CertificateEmailAddresses, params.SubjectEmailAddress) {
+		params.CertificateEmailAddresses = append(params.CertificateEmailAddresses, params.SubjectEmailAddress)
+	}
+
 	cert := &x509.Certificate{
 		Subject:         subject,
 		SerialNumber:    serial,
-		DNSNames:        []string{},
-		EmailAddresses:  []string{emailAddress},
-		IPAddresses:     []net.IP{},
-		URIs:            []*url.URL{},
+		DNSNames:        params.CertificateDNSNames,
+		EmailAddresses:  params.CertificateEmailAddresses,
+		IPAddresses:     params.CertificateIPAddresses,
+		URIs:            params.CertificateURIs,
 		KeyUsage:        x509.KeyUsageDigitalSignature,
 		ExtKeyUsage:     extKeyUsage,
 		ExtraExtensions: []pkix.Extension{},
@@ -202,33 +216,23 @@ func selfCertificate(serialNumber string, publicKey crypto.PublicKey, privateKey
 	return x509.ParseCertificate(data)
 }
 
-func certificateRequest(serialNumber string, privateKey crypto.PrivateKey) ([]byte, error) {
-	emailAddress := os.Getenv("PIVIT_EMAIL")
-	pivitOrg := strings.Split(os.Getenv("PIVIT_ORG"), ",")
-	pivitOrgUnit := strings.Split(os.Getenv("PIVIT_ORG_UNIT"), ",")
-	pivitCertUris := strings.Split(os.Getenv("PIVIT_CERT_URIS"), " ")
-
-	certUrls := make([]*url.URL, 0)
-	for _, urlString := range pivitCertUris {
-		parsed, err := url.Parse(urlString)
-		if err == nil {
-			certUrls = append(certUrls, parsed)
-		}
+func certificateRequest(serialNumber string, privateKey crypto.PrivateKey, params CertificateParameters) ([]byte, error) {
+	if !slices.Contains(params.CertificateEmailAddresses, params.SubjectEmailAddress) {
+		params.CertificateEmailAddresses = append(params.CertificateEmailAddresses, params.SubjectEmailAddress)
 	}
-
 	subject := pkix.Name{
-		Organization:       pivitOrg,
-		OrganizationalUnit: pivitOrgUnit,
+		Organization:       params.SubjectOrganization,
+		OrganizationalUnit: params.SubjectOrganizationUnit,
 		SerialNumber:       serialNumber,
-		CommonName:         emailAddress,
+		CommonName:         params.SubjectEmailAddress,
 	}
 	certRequest := &x509.CertificateRequest{
 		SignatureAlgorithm: x509.ECDSAWithSHA256,
 		Subject:            subject,
-		DNSNames:           []string{},
-		EmailAddresses:     []string{emailAddress},
-		IPAddresses:        []net.IP{},
-		URIs:               certUrls,
+		DNSNames:           params.CertificateDNSNames,
+		EmailAddresses:     params.CertificateEmailAddresses,
+		IPAddresses:        params.CertificateIPAddresses,
+		URIs:               params.CertificateURIs,
 		ExtraExtensions:    []pkix.Extension{},
 	}
 
