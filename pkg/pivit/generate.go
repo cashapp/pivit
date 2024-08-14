@@ -42,6 +42,8 @@ type GenerateCertificateOpts struct {
 	Pin string
 }
 
+// CertificateParameters specifies the information encoded in the certificate
+// it's used to construct the certificate's subject, and targets (IP addresses, email, URIs, and DNS names)
 type CertificateParameters struct {
 	SubjectEmailAddress     string
 	SubjectOrganization     []string

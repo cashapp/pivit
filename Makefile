@@ -38,7 +38,7 @@ test: pivit
 	set -e ;\
 	go test ./pkg/... ;\
 	file pivit ;\
-	./pivit --help ;\
+	./pivit --help 2> /dev/null ;\
 	)
 
 #
