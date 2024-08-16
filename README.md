@@ -1,3 +1,5 @@
+[![codecov](https://codecov.io/gh/cashapp/pivit/graph/badge.svg?token=NXDYOELPGG)](https://codecov.io/gh/cashapp/pivit)
+
 # Pivit
 Pivit is a command line tool for managing x509 certificates stored on smart cards with PIV applet support (Yubikey),
 and using those certificates to sign and verify data.
