@@ -36,7 +36,7 @@ release: pivit
 test: pivit
 	(\
 	set -e ;\
-	go test ./pkg/... ;\
+	go test -coverprofile=cover.out ./pkg/... ;\
 	file pivit ;\
 	./pivit --help ;\
 	)
@@ -46,4 +46,4 @@ test: pivit
 #
 .PHONY: clean
 clean:
-	rm -rf ./pivit*
+	rm -rf ./pivit* ./cover.out
