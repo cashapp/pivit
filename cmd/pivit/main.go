@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/cashapp/pivit/pkg/pivit"
-	"github.com/go-piv/piv-go/piv"
+	"github.com/go-piv/piv-go/v2/piv"
 	"github.com/pborman/getopt/v2"
 	"github.com/pkg/errors"
 )

@@ -5,7 +5,7 @@ import (
 	"encoding/pem"
 	"testing"
 
-	"github.com/go-piv/piv-go/piv"
+	"github.com/go-piv/piv-go/v2/piv"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -123,7 +123,7 @@ func TestRandomManagementKey(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	assert.Len(t, key1, 24)
+	assert.Len(t, *key1, 24)
 
 	key2, err := RandomManagementKey()
 	if err != nil {

@@ -15,7 +15,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/go-piv/piv-go/piv"
+	"github.com/go-piv/piv-go/v2/piv"
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/ed25519"
 )
@@ -25,7 +25,7 @@ type fakeYubikey struct {
 	privateKey      crypto.PrivateKey
 	attestationCert *x509.Certificate
 	serialNumber    string
-	managementKey   [24]byte
+	managementKey   []byte
 	pin             string
 	puk             string
 	slots           map[piv.Slot]*slotContent
@@ -211,7 +211,7 @@ func (f *fakeYubikey) Certificate(slot piv.Slot) (*x509.Certificate, error) {
 	return f.slots[slot].cert, nil
 }
 
-func (f *fakeYubikey) SetManagementKey(oldKey, newKey [24]byte) error {
+func (f *fakeYubikey) SetManagementKey(oldKey, newKey []byte) error {
 	if !bytes.Equal(f.managementKey[:], oldKey[:]) {
 		return errors.New("wrong management key")
 	}
@@ -226,7 +226,7 @@ func (f *fakeYubikey) Metadata(pin string) (*piv.Metadata, error) {
 	return f.metadata, nil
 }
 
-func (f *fakeYubikey) SetMetadata(managementKey [24]byte, metadata *piv.Metadata) error {
+func (f *fakeYubikey) SetMetadata(managementKey []byte, metadata *piv.Metadata) error {
 	if !bytes.Equal(f.managementKey[:], managementKey[:]) {
 		return errors.New("wrong management key")
 	}
@@ -258,7 +258,7 @@ func (f *fakeYubikey) SetPUK(oldPUK, newPUK string) error {
 	return nil
 }
 
-func (f *fakeYubikey) SetCertificate(managementKey [24]byte, slot piv.Slot, certificate *x509.Certificate) error {
+func (f *fakeYubikey) SetCertificate(managementKey []byte, slot piv.Slot, certificate *x509.Certificate) error {
 	if !bytes.Equal(f.managementKey[:], managementKey[:]) {
 		return errors.New("wrong management key")
 	}
@@ -292,7 +292,7 @@ func (f *fakeYubikey) SetCertificate(managementKey [24]byte, slot piv.Slot, cert
 	return nil
 }
 
-func (f *fakeYubikey) GenerateKey(managementKey [24]byte, slot piv.Slot, key piv.Key) (crypto.PublicKey, error) {
+func (f *fakeYubikey) GenerateKey(managementKey []byte, slot piv.Slot, key piv.Key) (crypto.PublicKey, error) {
 	if !bytes.Equal(f.managementKey[:], managementKey[:]) {
 		return nil, errors.New("wrong management key")
 	}
