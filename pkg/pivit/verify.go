@@ -8,7 +8,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/go-piv/piv-go/piv"
+	"github.com/go-piv/piv-go/v2/piv"
 
 	"github.com/certifi/gocertifi"
 	cms "github.com/github/smimesign/ietf-cms"

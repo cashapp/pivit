@@ -10,7 +10,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/go-piv/piv-go/piv"
+	"github.com/go-piv/piv-go/v2/piv"
 	"github.com/manifoldco/promptui"
 	"github.com/pkg/errors"
 )
@@ -80,23 +80,23 @@ func GetSlot(slot string) piv.Slot {
 	}
 }
 
-// RandomManagementKey returns a *[24]byte slice filled with random byte values
-func RandomManagementKey() (*[24]byte, error) {
+// RandomManagementKey returns a *[]byte slice filled with random byte values
+func RandomManagementKey() (*[]byte, error) {
 	mk := make([]byte, 24)
 	if _, err := rand.Reader.Read(mk); err != nil {
 		return nil, err
 	}
-	return (*[24]byte)(mk), nil
+	return &mk, nil
 }
 
 // deriveManagementKey returns the first 24 bytes of the SHA256 checksum of the given pin
 // NOTE: this function has an error in it and SHOULD NOT BE USED.
 // It'll return the same checksum every time it's being called.
 // Its only use case should be in the GetOrSetManagementKey function for legacy reasons.
-func deriveManagementKey(pin string) *[24]byte {
+func deriveManagementKey(pin string) *[]byte {
 	hash := crypto.SHA256.New()
 	checksum := hash.Sum([]byte(pin))
-	var mk [24]byte
+	var mk []byte
 	copy(mk[:], checksum[:24])
 	return &mk
 }
@@ -107,8 +107,8 @@ func deriveManagementKey(pin string) *[24]byte {
 //  2. set it as the new management key
 //  3. store it in the PIV metadata section
 //  4. return the newly set management key
-func GetOrSetManagementKey(yk Pivit, pin string) (*[24]byte, error) {
-	var newManagementKey *[24]byte
+func GetOrSetManagementKey(yk Pivit, pin string) (*[]byte, error) {
+	var newManagementKey *[]byte
 	metadata, err := yk.Metadata(pin)
 	if err != nil {
 		return nil, err

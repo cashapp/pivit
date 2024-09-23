@@ -7,7 +7,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/go-piv/piv-go/piv"
+	"github.com/go-piv/piv-go/v2/piv"
 
 	cms "github.com/github/smimesign/ietf-cms"
 	"github.com/pkg/errors"

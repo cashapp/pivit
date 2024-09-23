@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/go-piv/piv-go/piv"
+	"github.com/go-piv/piv-go/v2/piv"
 	"github.com/pkg/errors"
 )
 
@@ -16,14 +16,14 @@ type Pivit interface {
 	Attest(slot piv.Slot) (*x509.Certificate, error)
 	PrivateKey(slot piv.Slot, publicKey crypto.PublicKey, auth piv.KeyAuth) (crypto.PrivateKey, error)
 	Certificate(slot piv.Slot) (*x509.Certificate, error)
-	SetManagementKey(oldKey, newKey [24]byte) error
+	SetManagementKey(oldKey, newKey []byte) error
 	Metadata(pin string) (*piv.Metadata, error)
-	SetMetadata(managementKey [24]byte, metadata *piv.Metadata) error
+	SetMetadata(managementKey []byte, metadata *piv.Metadata) error
 	Reset() error
 	SetPIN(oldPIN, newPIN string) error
 	SetPUK(oldPUK, newPUK string) error
-	SetCertificate(managementKey [24]byte, slot piv.Slot, certificate *x509.Certificate) error
-	GenerateKey(managementKey [24]byte, slot piv.Slot, key piv.Key) (crypto.PublicKey, error)
+	SetCertificate(managementKey []byte, slot piv.Slot, certificate *x509.Certificate) error
+	GenerateKey(managementKey []byte, slot piv.Slot, key piv.Key) (crypto.PublicKey, error)
 	Version() piv.Version
 }
 
