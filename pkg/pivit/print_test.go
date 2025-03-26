@@ -26,7 +26,7 @@ func TestPrintCertificate_success(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err = yk.GenerateKey(piv.DefaultManagementKey, piv.SlotCardAuthentication, piv.Key{})
+	_, err = yk.GenerateKey(piv.DefaultManagementKey, piv.SlotCardAuthentication, piv.Key{Algorithm: piv.AlgorithmRSA4096})
 	if err != nil {
 		t.Fatal(err)
 	}
