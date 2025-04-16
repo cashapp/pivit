@@ -61,7 +61,7 @@ func runCommand() error {
 		return nil
 	}
 
-	yk, err := pivit.YubikeyHandle()
+	yk, err := pivit.YubikeyHandleWithSerial(os.Getenv("PIVIT_YK_SERIAL"))
 	if err != nil {
 		return errors.Wrap(err, "failed to open yubikey")
 	}

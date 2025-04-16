@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io"
+	"strconv"
 
 	"github.com/go-piv/piv-go/v2/piv"
 	"github.com/pkg/errors"
@@ -29,19 +30,62 @@ type Pivit interface {
 
 var _ Pivit = (*piv.YubiKey)(nil)
 
-// YubikeyHandle returns a handle to the first piv.YubiKey found in the system
+
+// YubikeyHandle returns a handle to the connected piv.YubiKey.
+// It errors unless there is exactly one YubiKey connected.
 func YubikeyHandle() (*piv.YubiKey, error) {
+	return YubikeyHandleWithSerial("")
+}
+
+// YubikeyHandleWithSerial returns a handle to a piv.YubiKey.
+// If serial is empty, returns the YubiKey found only if exactly one card is present.
+// If serial is provided, returns the YubiKey with the matching serial number.
+func YubikeyHandleWithSerial(serial string) (*piv.YubiKey, error) {
 	cards, err := piv.Cards()
 	if err != nil {
 		return nil, errors.Wrap(err, "enumerate smart cards")
 	}
 
-	if len(cards) != 1 {
+	if len(cards) == 0 {
 		return nil, errors.New("no smart card found")
 	}
 
-	yk, err := piv.Open(cards[0])
-	return yk, err
+	// If no serial specified, only succeed if exactly one card is present
+	if serial == "" {
+		if len(cards) > 1 {
+			return nil, errors.New("multiple smart cards found but no serial specified")
+		}
+		yk, err := piv.Open(cards[0])
+		return yk, err
+	}
+
+	// Parse the expected serial number
+	expectedSerial, err := strconv.ParseUint(serial, 10, 32)
+	if err != nil {
+		return nil, fmt.Errorf("invalid serial number format: %v", err)
+	}
+
+	// Serial specified - try to find matching card
+	for _, card := range cards {
+		yk, err := piv.Open(card)
+		if err != nil {
+			continue
+		}
+
+		// Get serial number
+		cardSerial, err := yk.Serial()
+		if err != nil {
+			yk.Close()
+			continue
+		}
+
+		if uint64(cardSerial) == expectedSerial {
+			return yk, nil
+		}
+		yk.Close()
+	}
+
+	return nil, fmt.Errorf("no smart card found with serial number %s", serial)
 }
 
 // signer implements crypto.Signer using a yubikey
