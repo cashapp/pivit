@@ -50,7 +50,6 @@ func YubikeyHandleWithSerial(serial string) (*piv.YubiKey, error) {
 		return nil, errors.New("no smart card found")
 	}
 
-	// If no serial specified, only succeed if exactly one card is present
 	if serial == "" {
 		if len(cards) > 1 {
 			return nil, errors.New("multiple smart cards found but no serial specified")
@@ -59,20 +58,17 @@ func YubikeyHandleWithSerial(serial string) (*piv.YubiKey, error) {
 		return yk, err
 	}
 
-	// Parse the expected serial number
 	expectedSerial, err := strconv.ParseUint(serial, 10, 32)
 	if err != nil {
 		return nil, fmt.Errorf("invalid serial number format: %v", err)
 	}
 
-	// Serial specified - try to find matching card
 	for _, card := range cards {
 		yk, err := piv.Open(card)
 		if err != nil {
 			continue
 		}
 
-		// Get serial number
 		cardSerial, err := yk.Serial()
 		if err != nil {
 			yk.Close()
