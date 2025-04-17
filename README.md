@@ -139,6 +139,20 @@ For example:
   pivit --print [-w slot]
   ```
 
+#### Specifying a Yubikey by serial number
+
+By default, `pivit` expects a single Yubikey to be attached. If a system has multiple card readers or Yubikeys, or
+to simply ensure pivit is talking to the intended Yubikey, specify the serial number via the `PIVIT_YK_SERIAL`
+environment variable.
+
+Example:
+
+```shell
+PIVIT_YK_SERIAL=13078292 pivit --print
+```
+
+This can be used with any command.
+
 ### Import certificate to Yubikey
 
 ```shell
