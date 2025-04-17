@@ -155,12 +155,12 @@ func (f *fakeYubikey) Attest(slot piv.Slot) (*x509.Certificate, error) {
 	case *rsa.PrivateKey:
 		pub := priv.PublicKey
 		data, err = x509.CreateCertificate(rand.Reader, template, f.attestationCert, &pub, f.privateKey)
-	case *ed25519.PrivateKey:
+	case ed25519.PrivateKey:
 		pub, ok := priv.Public().(ed25519.PublicKey)
 		if !ok {
 			return nil, errors.New("bad key type")
 		}
-		data, err = x509.CreateCertificate(rand.Reader, template, f.attestationCert, &pub, f.privateKey)
+		data, err = x509.CreateCertificate(rand.Reader, template, f.attestationCert, pub, f.privateKey)
 	default:
 		return nil, errors.New("bad key type")
 	}
@@ -197,7 +197,7 @@ func (f *fakeYubikey) PrivateKey(slot piv.Slot, publicKey crypto.PublicKey, _ pi
 		if !ok {
 			return nil, errors.New("bad key type")
 		}
-		if ed25519Pub.Equal(publicKey) {
+		if !ed25519Pub.Equal(publicKey) {
 			return nil, errors.New("wrong public key")
 		}
 	}
@@ -296,18 +296,68 @@ func (f *fakeYubikey) GenerateKey(managementKey []byte, slot piv.Slot, key piv.K
 	if !bytes.Equal(f.managementKey[:], managementKey[:]) {
 		return nil, errors.New("wrong management key")
 	}
-	privateKey, err := ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
-	priv := crypto.PrivateKey(privateKey)
-
-	if err != nil {
-		return nil, err
+	var priv crypto.PrivateKey
+	var pub crypto.PublicKey
+	switch key.Algorithm {
+	case piv.AlgorithmEd25519:
+		var privateKey ed25519.PrivateKey
+		var err error
+		pub, privateKey, err = ed25519.GenerateKey(rand.Reader)
+		if err != nil {
+			return nil, err
+		}
+		priv = privateKey
+		break
+	case piv.AlgorithmEC256:
+		privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+		if err != nil {
+			return nil, err
+		}
+		priv = crypto.PrivateKey(privateKey).(*crypto.PrivateKey)
+		pub = &privateKey.PublicKey
+		break
+	case piv.AlgorithmEC384:
+		privateKey, err := ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
+		if err != nil {
+			return nil, err
+		}
+		priv = privateKey
+		pub = &privateKey.PublicKey
+		break
+	case piv.AlgorithmRSA2048:
+		privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+		if err != nil {
+			return nil, err
+		}
+		priv = privateKey
+		pub = privateKey.Public()
+		break
+	case piv.AlgorithmRSA3072:
+		privateKey, err := rsa.GenerateKey(rand.Reader, 3072)
+		if err != nil {
+			return nil, err
+		}
+		priv = privateKey
+		pub = privateKey.Public()
+		break
+	case piv.AlgorithmRSA4096:
+		privateKey, err := rsa.GenerateKey(rand.Reader, 4096)
+		if err != nil {
+			return nil, err
+		}
+		priv = privateKey
+		pub = privateKey.Public()
+		break
+	default:
+		panic("unhandled default case")
 	}
+
 	content := &slotContent{
 		privateKey: &priv,
 		cert:       nil,
 	}
 	f.slots[slot] = content
-	return &privateKey.PublicKey, nil
+	return pub, nil
 }
 
 func (f *fakeYubikey) Version() piv.Version {
