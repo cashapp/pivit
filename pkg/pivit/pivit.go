@@ -30,7 +30,6 @@ type Pivit interface {
 
 var _ Pivit = (*piv.YubiKey)(nil)
 
-
 // YubikeyHandle returns a handle to the connected piv.YubiKey.
 // It errors unless there is exactly one YubiKey connected.
 func YubikeyHandle() (*piv.YubiKey, error) {

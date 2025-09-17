@@ -41,6 +41,9 @@ type GenerateCertificateOpts struct {
 	Prompt io.ReadCloser
 	// Pin to access the Yubikey
 	Pin string
+	// ValidityDays specifies the validity period (NotAfter - NotBefore) in days
+	// for self-signed certificates. If zero or negative, a default is used.
+	ValidityDays int
 }
 
 // CertificateParameters specifies the information encoded in the certificate
@@ -139,7 +142,7 @@ func GenerateCertificate(yk Pivit, opts *GenerateCertificateOpts) (*GenerateCert
 	})
 
 	if opts.SelfSign {
-		certificate, err := selfCertificate(deviceSerialNumber, publicKey, privateKey, opts.CertificateParameters)
+		certificate, err := selfCertificate(deviceSerialNumber, publicKey, privateKey, opts.CertificateParameters, opts.ValidityDays)
 		if err != nil {
 			return nil, err
 		}
@@ -179,7 +182,7 @@ func randomSerial() (*big.Int, error) {
 	return n, err
 }
 
-func selfCertificate(serialNumber string, publicKey crypto.PublicKey, privateKey crypto.PrivateKey, params CertificateParameters) (*x509.Certificate, error) {
+func selfCertificate(serialNumber string, publicKey crypto.PublicKey, privateKey crypto.PrivateKey, params CertificateParameters, validityDays int) (*x509.Certificate, error) {
 	subject := pkix.Name{
 		Organization:       params.SubjectOrganization,
 		OrganizationalUnit: params.SubjectOrganizationUnit,
@@ -202,8 +205,11 @@ func selfCertificate(serialNumber string, publicKey crypto.PublicKey, privateKey
 	// Set sane validity so signatures verify cleanly under time checks.
 	// Allow a small negative skew to tolerate local clock drift.
 	notBefore := time.Now().Add(-5 * time.Minute)
-	// Default validity window: 2 years (adjustable later via CLI if needed).
-	notAfter := notBefore.AddDate(2, 0, 0)
+	// Determine validity window: default to 2 years if not provided
+	if validityDays <= 0 {
+		validityDays = 730
+	}
+	notAfter := notBefore.AddDate(0, 0, validityDays)
 
 	cert := &x509.Certificate{
 		Subject:         subject,
