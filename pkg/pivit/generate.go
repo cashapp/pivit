@@ -42,7 +42,7 @@ type GenerateCertificateOpts struct {
 	// Pin to access the Yubikey
 	Pin string
 	// ValidityDays specifies the validity period (NotAfter - NotBefore) in days
-	// for self-signed certificates. If zero or negative, a default is used.
+	// for self-signed certificates. If zero or negative, no validity period is set (backwards compatible).
 	ValidityDays int
 }
 
@@ -202,20 +202,9 @@ func selfCertificate(serialNumber string, publicKey crypto.PublicKey, privateKey
 		params.CertificateEmailAddresses = append(params.CertificateEmailAddresses, params.SubjectEmailAddress)
 	}
 
-	// Set sane validity so signatures verify cleanly under time checks.
-	// Allow a small negative skew to tolerate local clock drift.
-	notBefore := time.Now().Add(-5 * time.Minute)
-	// Determine validity window: default to 2 years if not provided
-	if validityDays <= 0 {
-		validityDays = 730
-	}
-	notAfter := notBefore.AddDate(0, 0, validityDays)
-
 	cert := &x509.Certificate{
 		Subject:         subject,
 		SerialNumber:    serial,
-		NotBefore:       notBefore,
-		NotAfter:        notAfter,
 		DNSNames:        params.CertificateDNSNames,
 		EmailAddresses:  params.CertificateEmailAddresses,
 		IPAddresses:     params.CertificateIPAddresses,
@@ -223,6 +212,17 @@ func selfCertificate(serialNumber string, publicKey crypto.PublicKey, privateKey
 		KeyUsage:        x509.KeyUsageDigitalSignature,
 		ExtKeyUsage:     extKeyUsage,
 		ExtraExtensions: []pkix.Extension{},
+	}
+
+	// Only set validity period if explicitly requested (validityDays > 0)
+	// This preserves backwards compatibility - original behavior had zero times
+	if validityDays > 0 {
+		// Set sane validity so signatures verify cleanly under time checks.
+		// Allow a small negative skew to tolerate local clock drift.
+		notBefore := time.Now().Add(-5 * time.Minute)
+		notAfter := notBefore.AddDate(0, 0, validityDays)
+		cert.NotBefore = notBefore
+		cert.NotAfter = notAfter
 	}
 
 	data, err := x509.CreateCertificate(rand.Reader, cert, cert, publicKey, privateKey)
