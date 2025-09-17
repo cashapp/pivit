@@ -11,6 +11,7 @@ import (
 	"net"
 	"net/url"
 	"strconv"
+	"time"
 
 	"github.com/go-piv/piv-go/v2/piv"
 	"github.com/pkg/errors"
@@ -198,9 +199,17 @@ func selfCertificate(serialNumber string, publicKey crypto.PublicKey, privateKey
 		params.CertificateEmailAddresses = append(params.CertificateEmailAddresses, params.SubjectEmailAddress)
 	}
 
+	// Set sane validity so signatures verify cleanly under time checks.
+	// Allow a small negative skew to tolerate local clock drift.
+	notBefore := time.Now().Add(-5 * time.Minute)
+	// Default validity window: 2 years (adjustable later via CLI if needed).
+	notAfter := notBefore.AddDate(2, 0, 0)
+
 	cert := &x509.Certificate{
 		Subject:         subject,
 		SerialNumber:    serial,
+		NotBefore:       notBefore,
+		NotAfter:        notAfter,
 		DNSNames:        params.CertificateDNSNames,
 		EmailAddresses:  params.CertificateEmailAddresses,
 		IPAddresses:     params.CertificateIPAddresses,
