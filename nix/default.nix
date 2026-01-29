@@ -1,4 +1,4 @@
-{ pkgs ? import <nixpkgs> {} }:
+{ pkgs ? (import ./nixpkgs.nix) { } }:
 with pkgs;
 let
   # A cgo dependency (go-piv) needs either pcsclite (Linux) or PCSC (macOS)
@@ -6,7 +6,7 @@ let
          ++ lib.optional stdenv.isDarwin (darwin.apple_sdk.frameworks.PCSC);
 in buildGoModule rec {
   pname = "pivit";
-  version = "0.6.0";
+  version = "0.9.3";
 
   src = ./..;
 

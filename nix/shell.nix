@@ -1,4 +1,4 @@
-{ pkgs ? import <nixpkgs> {} }:
+{ pkgs ? (import ./nixpkgs.nix) { } }:
 with pkgs;
 let
   # A cgo dependency (go-piv) needs either pcsclite (Linux) or PCSC (macOS)
