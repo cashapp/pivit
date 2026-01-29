@@ -2,7 +2,7 @@
   description = "Sign and verify data using x509 certificates on Yubikeys";
 
   # Use latest stable nixpkgs repository
-  inputs.nixpkgs.url = "nixpkgs/nixos-24.11";
+  inputs.nixpkgs.url = "nixpkgs/nixos-25.11";
 
   outputs = { self, nixpkgs }:
     let
