@@ -140,10 +140,6 @@ func GenerateCertificate(yk Pivit, opts *GenerateCertificateOpts) (*GenerateCert
 	if opts.SelfSign {
 		certificate, err := selfCertificate(deviceSerialNumber, publicKey, privateKey, opts.CertificateParameters)
 		if err != nil {
-			return nil, err
-		}
-
-		if err != nil {
 			return nil, errors.Wrap(err, "parse self-signed certificate")
 		}
 
@@ -157,7 +153,7 @@ func GenerateCertificate(yk Pivit, opts *GenerateCertificateOpts) (*GenerateCert
 			Bytes: certificate.Raw,
 		})
 	} else if opts.GenerateCsr {
-		certRequest, err := certificateRequest(deviceSerialNumber, privateKey, opts.CertificateParameters)
+		certRequest, err := certificateRequest(deviceSerialNumber, privateKey, opts.CertificateParameters, opts.Algorithm)
 		if err != nil {
 			return nil, err
 		}
@@ -218,7 +214,7 @@ func selfCertificate(serialNumber string, publicKey crypto.PublicKey, privateKey
 	return x509.ParseCertificate(data)
 }
 
-func certificateRequest(serialNumber string, privateKey crypto.PrivateKey, params CertificateParameters) ([]byte, error) {
+func certificateRequest(serialNumber string, privateKey crypto.PrivateKey, params CertificateParameters, algorithm piv.Algorithm) ([]byte, error) {
 	if !contains(params.CertificateEmailAddresses, params.SubjectEmailAddress) {
 		params.CertificateEmailAddresses = append(params.CertificateEmailAddresses, params.SubjectEmailAddress)
 	}
@@ -228,8 +224,31 @@ func certificateRequest(serialNumber string, privateKey crypto.PrivateKey, param
 		SerialNumber:       serialNumber,
 		CommonName:         params.SubjectEmailAddress,
 	}
+	var signatureAlgorithm x509.SignatureAlgorithm
+	switch algorithm {
+	case piv.AlgorithmEd25519:
+		signatureAlgorithm = x509.PureEd25519
+		break
+	case piv.AlgorithmEC256:
+		signatureAlgorithm = x509.ECDSAWithSHA256
+		break
+	case piv.AlgorithmEC384:
+		signatureAlgorithm = x509.ECDSAWithSHA384
+		break
+	case piv.AlgorithmRSA2048:
+		signatureAlgorithm = x509.SHA256WithRSA
+		break
+	case piv.AlgorithmRSA3072:
+		signatureAlgorithm = x509.SHA384WithRSA
+		break
+	case piv.AlgorithmRSA4096:
+		signatureAlgorithm = x509.SHA512WithRSA
+		break
+	default:
+		return nil, errors.Errorf("unsupported certificate signing algorithm: %v", algorithm)
+	}
 	certRequest := &x509.CertificateRequest{
-		SignatureAlgorithm: x509.ECDSAWithSHA256,
+		SignatureAlgorithm: signatureAlgorithm,
 		Subject:            subject,
 		DNSNames:           params.CertificateDNSNames,
 		EmailAddresses:     params.CertificateEmailAddresses,

@@ -22,6 +22,7 @@ func TestGenerateCertificate(t *testing.T) {
 		generateCsr bool
 		assumeYes   bool
 		slot        piv.Slot
+		algorithm   piv.Algorithm
 		input       *promptReader
 
 		expectError       bool
@@ -33,6 +34,7 @@ func TestGenerateCertificate(t *testing.T) {
 			description:     "self-signing fails when not confirmed",
 			selfSign:        true,
 			slot:            piv.Slot{},
+			algorithm:       piv.AlgorithmEC384,
 			input:           &promptReader{pin: "n\n"},
 			expectNilResult: true,
 		},
@@ -41,12 +43,14 @@ func TestGenerateCertificate(t *testing.T) {
 			selfSign:          true,
 			assumeYes:         true,
 			slot:              piv.SlotCardAuthentication,
+			algorithm:         piv.AlgorithmEC384,
 			shouldGenerateKey: true,
 		},
 		{
 			description:       "self-signed succeeds with confirmation prompt",
 			selfSign:          true,
 			slot:              piv.SlotCardAuthentication,
+			algorithm:         piv.AlgorithmEC384,
 			input:             &promptReader{pin: "y\n"},
 			shouldGenerateKey: true,
 		},
@@ -54,6 +58,23 @@ func TestGenerateCertificate(t *testing.T) {
 			description:       "generates certificate signing request",
 			generateCsr:       true,
 			slot:              piv.SlotCardAuthentication,
+			algorithm:         piv.AlgorithmEC384,
+			shouldGenerateKey: true,
+			shouldGenerateCsr: true,
+		},
+		{
+			description:       "generates certificate signing request (RSA)",
+			generateCsr:       true,
+			slot:              piv.SlotCardAuthentication,
+			algorithm:         piv.AlgorithmRSA2048,
+			shouldGenerateKey: true,
+			shouldGenerateCsr: true,
+		},
+		{
+			description:       "generates certificate signing request (ED25519)",
+			generateCsr:       true,
+			slot:              piv.SlotCardAuthentication,
+			algorithm:         piv.AlgorithmEd25519,
 			shouldGenerateKey: true,
 			shouldGenerateCsr: true,
 		},
@@ -71,7 +92,7 @@ func TestGenerateCertificate(t *testing.T) {
 				_ = yk.Reset()
 			}()
 			opts := &GenerateCertificateOpts{
-				Algorithm:   piv.AlgorithmEC384,
+				Algorithm:   test.algorithm,
 				SelfSign:    test.selfSign,
 				GenerateCsr: test.generateCsr,
 				AssumeYes:   test.assumeYes,
