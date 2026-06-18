@@ -126,6 +126,43 @@ func TestSign(t *testing.T) {
 	}
 }
 
+func TestNormalizeEmail(t *testing.T) {
+	testCases := []struct {
+		description string
+		userId      string
+		expected    string
+		expectError bool
+	}{
+		{
+			description: "bare email address",
+			userId:      "user@example.com",
+			expected:    "user@example.com",
+		},
+		{
+			description: "name and email in angle brackets",
+			userId:      "Full Name <user@example.com>",
+			expected:    "user@example.com",
+		},
+		{
+			description: "hex fingerprint",
+			userId:      "0xDEADBEEF",
+			expectError: true,
+		},
+	}
+	for _, test := range testCases {
+		t.Run(test.description, func(t *testing.T) {
+			email, err := normalizeEmail(test.userId)
+			if test.expectError {
+				assert.Error(t, err)
+				assert.Empty(t, email)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, test.expected, email)
+			}
+		})
+	}
+}
+
 // skipCI skips a test if we can determine the environment we're running in is a NixOS sandbox
 // it's used to skip tests that use networking for example
 func skipCI(t *testing.T) {

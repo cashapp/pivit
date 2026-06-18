@@ -128,7 +128,7 @@ func normalizeEmail(userId string) (string, error) {
 	emailStartIndex := strings.Index(userId, "<")
 	if emailStartIndex != -1 {
 		emailEndIndex := strings.Index(userId, ">")
-		return userId[emailStartIndex:emailEndIndex], nil
+		return userId[emailStartIndex+1 : emailEndIndex], nil
 	}
 
 	if strings.ContainsRune(userId, '@') {
