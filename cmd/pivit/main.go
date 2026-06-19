@@ -34,6 +34,8 @@ func runCommand() error {
 	localUserOpt := getopt.StringLong("local-user", 'u', "", "use USER-ID to sign", "USER-ID")
 	detachSignFlag := getopt.BoolLong("detach-sign", 'b', "make a detached signature")
 	armorFlag := getopt.BoolLong("armor", 'a', "create ascii armored output")
+	validDaysOpt := getopt.IntLong("valid-days", 0, 0, "validity period in days for self-signed certificates (only when > 0)", "days")
+
 	statusFdOpt := getopt.IntLong("status-fd", 0, -1, "write special status strings to the file descriptor n.", "n")
 	firstOpt := getopt.BoolLong("first-pem", 0, "imports the first PEM block found when importing, ignoring the rest of the imported file")
 	tsaOpt := getopt.StringLong("timestamp-authority", 't', "", "URL of RFC3161 timestamp authority to use for timestamping", "url")
@@ -255,6 +257,7 @@ func runCommand() error {
 			Slot:                  pivit.GetSlot(*slot),
 			Prompt:                os.Stdin,
 			Pin:                   pin,
+			ValidityDays:          *validDaysOpt,
 		}
 		if generateCsr {
 			fmt.Println("Touch Yubikey now to sign your CSR...")

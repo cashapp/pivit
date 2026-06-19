@@ -1,7 +1,10 @@
 package pivit
 
 import (
+	"crypto/x509"
+	"encoding/pem"
 	"testing"
+	"time"
 
 	"github.com/go-piv/piv-go/v2/piv"
 	"github.com/stretchr/testify/assert"
@@ -107,4 +110,86 @@ func TestGenerateCertificate(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestGenerateCertificate_BackwardsCompatibility(t *testing.T) {
+	yk, err := testYubikey()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	patchPivVerify(yk)
+	defer unpatchPinVerify()
+	defer func() {
+		_ = yk.Reset()
+	}()
+
+	// Test that when ValidityDays is 0 (default), we get the original behavior
+	// with zero times for NotBefore and NotAfter
+	opts := &GenerateCertificateOpts{
+		Algorithm:    piv.AlgorithmEC384,
+		SelfSign:     true,
+		AssumeYes:    true,
+		ValidityDays: 0, // Default value - should preserve original behavior
+		Slot:         piv.SlotCardAuthentication,
+		Pin:          piv.DefaultPIN,
+	}
+
+	result, err := GenerateCertificate(yk, opts)
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+
+	// Parse the certificate and verify it has zero times (backwards compatible behavior)
+	block, _ := pem.Decode(result.Certificate)
+	cert, err := x509.ParseCertificate(block.Bytes)
+	assert.NoError(t, err)
+	assert.True(t, cert.NotBefore.IsZero(), "NotBefore should be zero time for backwards compatibility")
+	assert.True(t, cert.NotAfter.IsZero(), "NotAfter should be zero time for backwards compatibility")
+}
+
+func TestGenerateCertificate_ValidityDays(t *testing.T) {
+	yk, err := testYubikey()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	patchPivVerify(yk)
+	defer unpatchPinVerify()
+	defer func() {
+		_ = yk.Reset()
+	}()
+
+	// Test that when ValidityDays > 0, we get proper validity times
+	validityDays := 365
+	opts := &GenerateCertificateOpts{
+		Algorithm:    piv.AlgorithmEC384,
+		SelfSign:     true,
+		AssumeYes:    true,
+		ValidityDays: validityDays,
+		Slot:         piv.SlotCardAuthentication,
+		Pin:          piv.DefaultPIN,
+	}
+
+	before := time.Now()
+	result, err := GenerateCertificate(yk, opts)
+	after := time.Now()
+
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+
+	// Parse the certificate and verify it has proper validity times
+	block, _ := pem.Decode(result.Certificate)
+	cert, err := x509.ParseCertificate(block.Bytes)
+	assert.NoError(t, err)
+
+	// Verify NotBefore is set to roughly now (with 5 minute negative skew)
+	assert.False(t, cert.NotBefore.IsZero(), "NotBefore should not be zero when ValidityDays > 0")
+	assert.True(t, cert.NotBefore.Before(before), "NotBefore should be before test start (due to negative skew)")
+	assert.True(t, cert.NotBefore.After(before.Add(-10*time.Minute)), "NotBefore should be within 10 minutes of test start")
+
+	// Verify NotAfter is set to roughly ValidityDays from now
+	assert.False(t, cert.NotAfter.IsZero(), "NotAfter should not be zero when ValidityDays > 0")
+	expectedNotAfter := cert.NotBefore.AddDate(0, 0, validityDays)
+	assert.True(t, cert.NotAfter.Equal(expectedNotAfter), "NotAfter should be exactly ValidityDays after NotBefore")
+	assert.True(t, cert.NotAfter.After(after.AddDate(0, 0, validityDays-1)), "NotAfter should be roughly ValidityDays from now")
 }

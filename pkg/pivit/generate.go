@@ -11,6 +11,7 @@ import (
 	"net"
 	"net/url"
 	"strconv"
+	"time"
 
 	"github.com/go-piv/piv-go/v2/piv"
 	"github.com/pkg/errors"
@@ -40,6 +41,9 @@ type GenerateCertificateOpts struct {
 	Prompt io.ReadCloser
 	// Pin to access the Yubikey
 	Pin string
+	// ValidityDays specifies the validity period (NotAfter - NotBefore) in days
+	// for self-signed certificates. If zero or negative, no validity period is set (backwards compatible).
+	ValidityDays int
 }
 
 // CertificateParameters specifies the information encoded in the certificate
@@ -138,7 +142,7 @@ func GenerateCertificate(yk Pivit, opts *GenerateCertificateOpts) (*GenerateCert
 	})
 
 	if opts.SelfSign {
-		certificate, err := selfCertificate(deviceSerialNumber, publicKey, privateKey, opts.CertificateParameters)
+		certificate, err := selfCertificate(deviceSerialNumber, publicKey, privateKey, opts.CertificateParameters, opts.ValidityDays)
 		if err != nil {
 			return nil, err
 		}
@@ -178,7 +182,7 @@ func randomSerial() (*big.Int, error) {
 	return n, err
 }
 
-func selfCertificate(serialNumber string, publicKey crypto.PublicKey, privateKey crypto.PrivateKey, params CertificateParameters) (*x509.Certificate, error) {
+func selfCertificate(serialNumber string, publicKey crypto.PublicKey, privateKey crypto.PrivateKey, params CertificateParameters, validityDays int) (*x509.Certificate, error) {
 	subject := pkix.Name{
 		Organization:       params.SubjectOrganization,
 		OrganizationalUnit: params.SubjectOrganizationUnit,
@@ -208,6 +212,17 @@ func selfCertificate(serialNumber string, publicKey crypto.PublicKey, privateKey
 		KeyUsage:        x509.KeyUsageDigitalSignature,
 		ExtKeyUsage:     extKeyUsage,
 		ExtraExtensions: []pkix.Extension{},
+	}
+
+	// Only set validity period if explicitly requested (validityDays > 0)
+	// This preserves backwards compatibility - original behavior had zero times
+	if validityDays > 0 {
+		// Set sane validity so signatures verify cleanly under time checks.
+		// Allow a small negative skew to tolerate local clock drift.
+		notBefore := time.Now().Add(-5 * time.Minute)
+		notAfter := notBefore.AddDate(0, 0, validityDays)
+		cert.NotBefore = notBefore
+		cert.NotAfter = notAfter
 	}
 
 	data, err := x509.CreateCertificate(rand.Reader, cert, cert, publicKey, privateKey)
